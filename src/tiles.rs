@@ -8,6 +8,7 @@ pub struct TileTemplate {
     amount_big: usize
 }
 impl TileTemplate {
+    
     #[inline(always)]
     #[must_use]
     pub fn color(&self) -> Rgb<u8> {

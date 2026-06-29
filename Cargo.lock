@@ -1194,6 +1194,7 @@ dependencies = [
  "hexx",
  "image",
  "imageproc",
+ "rand 0.10.1",
 ]
 
 [[package]]
