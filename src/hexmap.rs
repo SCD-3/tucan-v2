@@ -35,8 +35,8 @@ impl TileMap_rawShapeGen {
 
         let mut map = Self { map, size };
 
-        for _ in 0..size as u8 {
-            map.do_a_run(rng);
+        for i in 0..size as u8 {
+            map.do_a_run(rng, i < MIN_NEIGHBORS);
         };
         map
     }
@@ -50,8 +50,14 @@ impl TileMap_rawShapeGen {
         self.size as u32
     }
 
-    fn do_a_run<R: Rng>(&mut self, rng: &mut R) {
-        let (hex, _) = self.map.iter().filter(|(hex, state)| matches!(state, RawTileState::FreeToTake) && self.count_neighbors(*hex) >= MIN_NEIGHBORS).choose(rng).expect("We ran out of tiles. Congrats");
+    fn do_a_run<R: Rng>(&mut self, rng: &mut R, overule_min_neighbors: bool) {
+        // println!("{}", self.iter().filter(|(_, state)| matches!(state, RawTileState::FreeToTake)).collect::<Vec<_>>().len());
+
+        let (hex, _) = self.map.iter()
+        .filter(|(hex, state)| matches!(state, RawTileState::FreeToTake) && (overule_min_neighbors || self.count_neighbors(*hex) >= MIN_NEIGHBORS))
+        .choose(rng)
+        .expect("We ran out of tiles. Congrats");
+
         self[hex] = RawTileState::Taken;
         for i in hex.all_neighbors() {
             if matches!(self.get(i), Some(RawTileState::Unknown)) {
@@ -134,7 +140,9 @@ impl DrawHexMap for TileMap_shape {
         for (hex, state) in self.iter() {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
-            draw_polygon_mut(img, &points, Rgb([255, 255, 255]))
+            if *state {
+                draw_polygon_mut(img, &points, Rgb([255, 255, 255]))
+            }
         }
     }
 }

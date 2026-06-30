@@ -28,7 +28,6 @@ pub trait DrawHexMap {
 
     type ColorSpace;
 
-    #[must_use]
     fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig);
 
     #[must_use]
