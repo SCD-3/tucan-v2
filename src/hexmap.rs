@@ -1,12 +1,15 @@
-use std::ops::{Index, IndexMut};
+use std::{ops::{Index, IndexMut}, process::Output};
 
-use hexx::{Hex, layout, storage::{HexStore, HexagonalMap}, layout::HexLayout, Vec2, orientation::HexOrientation};
+use hexx::{Hex, storage::{HexStore, HexagonalMap}, layout::HexLayout, Vec2, orientation::HexOrientation};
 use image::DynamicImage;
 use imageproc::drawing::Canvas;
+use rand::prelude::*;
 use crate::tiles::*;
 
 pub const SMALL_MAP_SIZE: u8 = 73;
 pub const BIG_MAP_SIZE:   u8 = 104;
+
+const MIN_NEIGHBORS: u8 = 2;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(u8)]
@@ -26,6 +29,18 @@ pub struct TileMap_rawShapeGen {
     size: MapSize
 }
 impl TileMap_rawShapeGen {
+    pub fn new<R: Rng>(size: MapSize, rng: &mut R) -> Self {
+        let mut map = HexagonalMap::new(Hex::ZERO, size as u32, |_| RawTileState::Unknown);
+        map[Hex::ZERO] = RawTileState::FreeToTake;
+
+        let mut map = Self { map, size };
+
+        for _ in 0..size as u8 {
+            map.do_a_run(rng);
+        };
+        map
+    }
+
     pub fn iter(&self) -> impl Iterator {
         self.map.iter()
     }
@@ -33,6 +48,26 @@ impl TileMap_rawShapeGen {
     #[inline(always)]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
+    }
+
+    fn do_a_run<R: Rng>(&mut self, rng: &mut R) {
+        let (hex, _) = self.map.iter().filter(|(hex, state)| matches!(state, RawTileState::FreeToTake) && self.count_neighbors(*hex) >= MIN_NEIGHBORS).choose(rng).expect("We ran out of tiles. Congrats");
+        self[hex] = RawTileState::Taken;
+        for i in hex.all_neighbors() {
+            if matches!(self.get(i), Some(RawTileState::Unknown)) {
+                self[i] = RawTileState::FreeToTake;
+            }
+        }
+    }
+
+    fn count_neighbors(&self, hex: Hex) -> u8 {
+        let mut counted = 0;
+        for i in hex.all_neighbors() {
+            if matches!(self.get(i), Some(RawTileState::Taken)) {
+                counted += 1;
+            }
+        };
+        counted
     }
 }
 
@@ -45,6 +80,11 @@ impl Index<Hex> for TileMap_rawShapeGen {
 impl IndexMut<Hex> for TileMap_rawShapeGen {
     fn index_mut(&mut self, index: Hex) -> &mut Self::Output {
         &mut self.map[index]
+    }
+}
+impl Get<Hex> for TileMap_rawShapeGen {
+    fn get(&self, index: Hex) -> Option<&Self::Output> {
+        self.map.get(index)
     }
 }
 
@@ -82,6 +122,11 @@ impl IndexMut<Hex> for TileMap_shape {
         &mut self.map[index]
     }
 }
+impl Get<Hex> for TileMap_shape {
+    fn get(&self, index: Hex) -> Option<&Self::Output> {
+        self.map.get(index)
+    }
+}
 
 
 
@@ -114,6 +159,11 @@ impl Index<Hex> for TileMap_templates {
 impl IndexMut<Hex> for TileMap_templates {
     fn index_mut(&mut self, index: Hex) -> &mut Self::Output {
         &mut self.map[index]
+    }
+}
+impl Get<Hex> for TileMap_templates {
+    fn get(&self, index: Hex) -> Option<&Self::Output> {
+        self.map.get(index)
     }
 }
 
@@ -149,6 +199,11 @@ impl Index<Hex> for TileMap_props {
 impl IndexMut<Hex> for TileMap_props {
     fn index_mut(&mut self, index: Hex) -> &mut Self::Output {
         &mut self.map[index]
+    }
+}
+impl Get<Hex> for TileMap_props {
+    fn get(&self, index: Hex) -> Option<&Self::Output> {
+        self.map.get(index)
     }
 }
 
@@ -189,6 +244,11 @@ impl IndexMut<Hex> for TileMap {
         &mut self.map[index]
     }
 }
+impl Get<Hex> for TileMap {
+    fn get(&self, index: Hex) -> Option<&Self::Output> {
+        self.map.get(index)
+    }
+}
 
 
 
@@ -206,4 +266,8 @@ pub trait DrawHexMap {
             scale: Vec2::splat(size) };
         layout.hex_to_world_pos(pos)
     }
+}
+
+trait Get<Idx: ?Sized>: Index<Idx> {
+    fn get(&self, index: Idx) -> Option<&Self::Output>;
 }
