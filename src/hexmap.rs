@@ -1,10 +1,10 @@
-use std::{ops::{Index, IndexMut}, process::Output};
+use std::ops::{Index, IndexMut};
 
-use hexx::{Hex, storage::{HexStore, HexagonalMap}, layout::HexLayout, Vec2, orientation::HexOrientation};
-use image::DynamicImage;
-use imageproc::drawing::Canvas;
+use hexx::{Hex, storage::{HexStore, HexagonalMap}};
+use image::Rgb;
+use imageproc::drawing::{Canvas, draw_polygon_mut};
 use rand::prelude::*;
-use crate::tiles::*;
+use crate::{tiles::*, drawing::*};
 
 pub const SMALL_MAP_SIZE: u8 = 73;
 pub const BIG_MAP_SIZE:   u8 = 104;
@@ -41,7 +41,7 @@ impl TileMap_rawShapeGen {
         map
     }
 
-    pub fn iter(&self) -> impl Iterator {
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &RawTileState)> {
         self.map.iter()
     }
 
@@ -101,7 +101,7 @@ impl TileMap_shape {
         Self { map, size: from.size }
     }
 
-    pub fn iter(&self) -> impl Iterator {
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &bool)> {
         self.map.iter()
     }
 
@@ -127,6 +127,17 @@ impl Get<Hex> for TileMap_shape {
         self.map.get(index)
     }
 }
+impl DrawHexMap for TileMap_shape {
+    type ColorSpace = Rgb<u8>;
+
+    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig) {
+        for (hex, state) in self.iter() {
+            let pos = Self::get_pos(hex, image_config);
+            let points = get_hex_points(pos, image_config.hex_radius);
+            draw_polygon_mut(img, &points, Rgb([255, 255, 255]))
+        }
+    }
+}
 
 
 
@@ -140,7 +151,7 @@ impl TileMap_templates {
         todo!()
     }
 
-    pub fn iter(&self) -> impl Iterator {
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &TileTemplate)> {
         self.map.iter()
     }
 
@@ -180,7 +191,7 @@ impl TileMap_props {
         todo!()
     }
 
-    pub fn iter(&self) -> impl Iterator {
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<Prop>)> {
         self.map.iter()
     }
 
@@ -223,7 +234,7 @@ impl TileMap {
         Self { map: HexagonalMap::new(Hex::ZERO, templates.size_u32(), |pos| {Tile { template: templates[pos], prop: props[pos]}}), size: templates.size }
     }
 
-    pub fn iter(&self) -> impl Iterator {
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &Tile)> {
         self.map.iter()
     }
 
@@ -247,24 +258,6 @@ impl IndexMut<Hex> for TileMap {
 impl Get<Hex> for TileMap {
     fn get(&self, index: Hex) -> Option<&Self::Output> {
         self.map.get(index)
-    }
-}
-
-
-
-pub trait DrawHexMap {
-    const IMAGE_WIDTH: u32;
-    const IMAGE_HEIGHT: u32;
-    
-    fn get_shape(&self, pos: Hex) -> DynamicImage;
-    fn draw_to_image<C: Canvas>(img: &mut C);
-
-    fn get_pos(pos: Hex, size: f32) -> Vec2 {
-        let layout = HexLayout { 
-            origin: Vec2 { x: Self::IMAGE_WIDTH as f32/2.0, y: Self::IMAGE_HEIGHT as f32 / 2.0 }, 
-            orientation: HexOrientation::Pointy,
-            scale: Vec2::splat(size) };
-        layout.hex_to_world_pos(pos)
     }
 }
 
