@@ -102,10 +102,24 @@ pub struct TileMap_shape {
 }
 impl TileMap_shape {
     
+    
     pub fn new(from: TileMap_rawShapeGen) -> Self {
         let map = HexagonalMap::new(Hex::ZERO, from.size_u32(), |h| matches!(from[h], RawTileState::Taken));
         Self { map, size: from.size }
     }
+    
+    pub fn has_no_holes(&self) -> bool {
+        for (hex, state) in self.iter() {
+            if !*state {
+                if hex.all_neighbors().iter().all(|s| matches!(self.get(*s), Some(&true))) {
+                    return false;
+                }
+            }
+            
+        }
+        true
+    }
+
 
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &bool)> {
         self.map.iter()
