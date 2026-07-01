@@ -8,17 +8,19 @@ pub struct TileTemplate {
     amount_big: usize
 }
 impl TileTemplate {
-    
+
     #[inline(always)]
     #[must_use]
     pub fn color(&self) -> Rgb<u8> {
         self.color
     }
+
     #[inline(always)]
     #[must_use]
     pub fn amount_small(&self) -> usize {
         self.amount_small
     }
+
     #[inline(always)]
     #[must_use]
     pub fn amount_big(&self) -> usize {
@@ -28,9 +30,17 @@ impl TileTemplate {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct Tile {
-    pub template: TileTemplate,
+    pub template: Option<TileTemplate>,
     pub prop: Option<Prop>
 
+}
+impl Tile {
+    
+    #[inline(always)]
+    #[must_use]
+    pub fn taken(&self) -> bool {
+        matches!(self.template, Some(_))
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]

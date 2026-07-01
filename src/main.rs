@@ -18,9 +18,10 @@ fn main() -> Result<(), Box<dyn Error>>{
     loop {
         let raw = TileMap_rawShapeGen::new(MapSize::Big, &mut rng);
         let shape = TileMap_shape::new(raw);
+        let templates = TileMap_templates::new(&mut rng, &shape);
 
         if shape.has_no_holes() {
-            shape.draw(&mut img, image_config);
+            templates.draw(&mut img, image_config);
             img.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image.png")?;
             break;
         }

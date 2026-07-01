@@ -29,6 +29,8 @@ pub struct TileMap_rawShapeGen {
     size: MapSize
 }
 impl TileMap_rawShapeGen {
+
+    #[must_use]
     pub fn new<R: Rng>(size: MapSize, rng: &mut R) -> Self {
         let mut map = HexagonalMap::new(Hex::ZERO, size as u32, |_| RawTileState::Unknown);
         map[Hex::ZERO] = RawTileState::FreeToTake;
@@ -41,11 +43,14 @@ impl TileMap_rawShapeGen {
         map
     }
 
+    #[inline(always)]
+    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &RawTileState)> {
         self.map.iter()
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
     }
@@ -66,6 +71,7 @@ impl TileMap_rawShapeGen {
         }
     }
 
+    #[must_use]
     fn count_neighbors(&self, hex: Hex) -> u8 {
         let mut counted = 0;
         for i in hex.all_neighbors() {
@@ -102,12 +108,13 @@ pub struct TileMap_shape {
 }
 impl TileMap_shape {
     
-    
+    #[must_use]
     pub fn new(from: TileMap_rawShapeGen) -> Self {
         let map = HexagonalMap::new(Hex::ZERO, from.size_u32(), |h| matches!(from[h], RawTileState::Taken));
         Self { map, size: from.size }
     }
     
+    #[must_use]
     pub fn has_no_holes(&self) -> bool {
         for (hex, state) in self.iter() {
             if !*state {
@@ -121,11 +128,14 @@ impl TileMap_shape {
     }
 
 
+    #[inline(always)]
+    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &bool)> {
         self.map.iter()
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
     }
@@ -164,27 +174,57 @@ impl DrawHexMap for TileMap_shape {
 
 
 pub struct TileMap_templates {
-    map: HexagonalMap<TileTemplate>,
+    map: HexagonalMap<Option<TileTemplate>>,
     size: MapSize
 }
 impl TileMap_templates {
 
-    pub fn new(from: &TileMap_shape) -> Self {
-        todo!()
+    #[must_use]
+    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Self {
+        let temp = Self::prepare_random_tiles(rng, from.size);
+        let mut tiles = temp.iter();
+        // println!("{}", from.iter().filter(|(_, a)| **a).count());
+
+        Self { map: HexagonalMap::new(
+            Hex::ZERO, 
+            from.size_u32(), 
+            |h| if from[h] {Some(*tiles.next().unwrap())} else {None}), size: from.size }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &TileTemplate)> {
+    #[inline(always)]
+    #[must_use]
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<TileTemplate>)> {
         self.map.iter()
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
+    }
+
+    #[must_use]
+    pub fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> Vec<TileTemplate> {
+        let mut out = Vec::new();
+        match map_size {
+            MapSize::Small => {
+                for template in [SAND, FOREST, MOUNTAIN, WATER] {
+                    out.extend(vec![template; template.amount_small()]);
+                }
+            },
+            MapSize::Big => {
+                for template in [SAND, FOREST, MOUNTAIN, WATER] {
+                    out.extend(vec![template; template.amount_big()]);
+                }
+            }
+        }
+        out.shuffle(rng);
+        out
     }
 }
 
 impl Index<Hex> for TileMap_templates {
-    type Output = TileTemplate;
+    type Output = Option<TileTemplate>;
     fn index(&self, index: Hex) -> &Self::Output {
         &self.map[index]
     }
@@ -199,6 +239,20 @@ impl Get<Hex> for TileMap_templates {
         self.map.get(index)
     }
 }
+impl DrawHexMap for TileMap_templates {
+    type ColorSpace = Rgb<u8>;
+
+    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig) {
+        for (hex, state) in self.iter() {
+            let pos = Self::get_pos(hex, image_config);
+            let points = get_hex_points(pos, image_config.hex_radius);
+            match state {
+                Some(template) => draw_polygon_mut(img, &points, template.color()),
+                None => ()
+            }
+        }
+    }
+}
 
 
 
@@ -209,15 +263,19 @@ pub struct TileMap_props {
 }
 impl TileMap_props {
 
+    #[must_use]
     pub fn new(from: &TileMap_shape) -> Self {
         todo!()
     }
 
+    #[inline(always)]
+    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<Prop>)> {
         self.map.iter()
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
     }
@@ -248,6 +306,7 @@ pub struct TileMap {
 }
 impl TileMap {
 
+    #[must_use]
     pub fn new(templates: TileMap_templates, props: TileMap_props) -> Self {
         if templates.size != props.size {
             panic!("Both sub-mapes must be same size")
@@ -256,11 +315,14 @@ impl TileMap {
         Self { map: HexagonalMap::new(Hex::ZERO, templates.size_u32(), |pos| {Tile { template: templates[pos], prop: props[pos]}}), size: templates.size }
     }
 
+    #[inline(always)]
+    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Tile)> {
         self.map.iter()
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
     }
@@ -284,5 +346,6 @@ impl Get<Hex> for TileMap {
 }
 
 trait Get<Idx: ?Sized>: Index<Idx> {
+    #[must_use]
     fn get(&self, index: Idx) -> Option<&Self::Output>;
 }
