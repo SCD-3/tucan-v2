@@ -54,7 +54,6 @@ impl TileMap_rawShapeGen {
     }
 
     #[inline(always)]
-    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &RawTileState)> {
         self.map.iter()
     }
@@ -127,11 +126,10 @@ impl TileMap_shape {
     #[must_use]
     pub fn has_no_holes(&self) -> bool {
         for (hex, state) in self.iter() {
-            if !*state {
-                if hex.all_neighbors().iter().all(|s| matches!(self.get(*s), Some(&true))) {
+            if !*state
+                && hex.all_neighbors().iter().all(|s| matches!(self.get(*s), Some(&true))) {
                     return false;
                 }
-            }
             
         }
         true
@@ -139,7 +137,6 @@ impl TileMap_shape {
 
 
     #[inline(always)]
-    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &bool)> {
         self.map.iter()
     }
@@ -219,7 +216,6 @@ impl TileMap_templates {
     }
 
     #[inline(always)]
-    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<TileTemplate>)> {
         self.map.iter()
     }
@@ -230,7 +226,6 @@ impl TileMap_templates {
         self.size as u32
     }
 
-    #[must_use]
     pub fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = TileTemplate> {
         let mut out = Vec::new();
         match map_size {
@@ -273,10 +268,7 @@ impl DrawHexMap for TileMap_templates {
         for (hex, state) in self.iter() {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
-            match state {
-                Some(template) => draw_polygon_mut(img, &points, template.color()),
-                None => ()
-            }
+            if let Some(template) = state { draw_polygon_mut(img, &points, template.color()) }
         }
     }
 }
@@ -295,7 +287,6 @@ impl TileMap_props {
     }
 
     #[inline(always)]
-    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<Prop>)> {
         self.map.iter()
     }
@@ -342,7 +333,6 @@ impl TileMap {
     }
 
     #[inline(always)]
-    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Tile)> {
         self.map.iter()
     }

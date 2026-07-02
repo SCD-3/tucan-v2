@@ -39,7 +39,7 @@ impl Tile {
     #[inline(always)]
     #[must_use]
     pub fn taken(&self) -> bool {
-        matches!(self.template, Some(_))
+        self.template.is_some()
     }
 }
 
