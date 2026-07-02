@@ -11,11 +11,20 @@ pub const BIG_MAP_SIZE:   u8 = 104;
 
 const MIN_NEIGHBORS: u8 = 2;
 
+/// Matching for pattern `Option<T>::Some(a)` or `Option<T>::None`
+/// 
+/// `a` is ment to be "falsely" state, which can be equivalent to no state
+macro_rules! empty {
+    ($a:pat) => {
+        Some($a)|None
+    };
+}
+
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(u8)]
 pub enum MapSize {
-    Small = 73,
-    Big   = 104
+    Small = SMALL_MAP_SIZE,
+    Big   = BIG_MAP_SIZE
 }
 
 pub enum RawTileState {
@@ -24,6 +33,7 @@ pub enum RawTileState {
     Unknown
 }
 
+#[allow(non_camel_case_types)]
 pub struct TileMap_rawShapeGen {
     map: HexagonalMap<RawTileState>,
     size: MapSize
@@ -101,7 +111,7 @@ impl Get<Hex> for TileMap_rawShapeGen {
 }
 
 
-
+#[allow(non_camel_case_types)]
 pub struct TileMap_shape {
     map: HexagonalMap<bool>,
     size: MapSize
@@ -139,6 +149,24 @@ impl TileMap_shape {
     pub fn size_u32(&self) -> u32 {
         self.size as u32
     }
+
+    #[must_use]
+    fn find_edge_single(&self) -> Hex {
+        let mut pos = Hex::ZERO;
+        loop {
+            let new_pos = Hex::new(pos.x+1, pos.y);
+            match self.get(new_pos) {
+                Some(true) => pos = new_pos,
+                Some(false)|None => return pos
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn find_edges(&self) -> Vec<Hex> {
+        todo!("`TileMap_shape::find_edges` not yet implemented")
+    }
+    
 }
 
 impl Index<Hex> for TileMap_shape {
@@ -172,7 +200,7 @@ impl DrawHexMap for TileMap_shape {
 }
 
 
-
+#[allow(non_camel_case_types)]
 pub struct TileMap_templates {
     map: HexagonalMap<Option<TileTemplate>>,
     size: MapSize
@@ -181,14 +209,13 @@ impl TileMap_templates {
 
     #[must_use]
     pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Self {
-        let temp = Self::prepare_random_tiles(rng, from.size);
-        let mut tiles = temp.iter();
+        let mut tiles = Self::prepare_random_tiles(rng, from.size);
         // println!("{}", from.iter().filter(|(_, a)| **a).count());
 
         Self { map: HexagonalMap::new(
             Hex::ZERO, 
             from.size_u32(), 
-            |h| if from[h] {Some(*tiles.next().unwrap())} else {None}), size: from.size }
+            |h| if from[h] {Some(tiles.next().unwrap())} else {None}), size: from.size }
     }
 
     #[inline(always)]
@@ -204,7 +231,7 @@ impl TileMap_templates {
     }
 
     #[must_use]
-    pub fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> Vec<TileTemplate> {
+    pub fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = TileTemplate> {
         let mut out = Vec::new();
         match map_size {
             MapSize::Small => {
@@ -219,7 +246,7 @@ impl TileMap_templates {
             }
         }
         out.shuffle(rng);
-        out
+        out.into_iter()
     }
 }
 
@@ -255,8 +282,7 @@ impl DrawHexMap for TileMap_templates {
 }
 
 
-
-
+#[allow(non_camel_case_types)]
 pub struct TileMap_props {
     map: HexagonalMap<Option<Prop>>,
     size: MapSize
