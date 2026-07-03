@@ -10,6 +10,7 @@ pub const SMALL_MAP_SIZE: u8 = 73;
 pub const BIG_MAP_SIZE:   u8 = 104;
 
 const MIN_NEIGHBORS: u8 = 2;
+const VILLAGE_COUNT: usize = 10;
 
 /// Matching for pattern `Option<T>::Some(a)` or `Option<T>::None`
 /// 
@@ -17,6 +18,12 @@ const MIN_NEIGHBORS: u8 = 2;
 macro_rules! empty {
     ($a:pat) => {
         Some($a)|None
+    };
+}
+
+macro_rules! rgb {
+    ($r:expr, $g:expr, $b:expr) => {
+        Rgb([$r, $g, $b])
     };
 }
 
@@ -150,18 +157,33 @@ impl TileMap_shape {
     #[must_use]
     fn find_edge_single(&self) -> Hex {
         let mut pos = Hex::ZERO;
-        loop {
-            let new_pos = Hex::new(pos.x+1, pos.y);
-            match self.get(new_pos) {
-                Some(true) => pos = new_pos,
-                Some(false)|None => return pos
-            }
-        }
+        while !matches!(self.get(Hex::new(pos.x+1, pos.y)), empty!(false)) {
+            pos.x += 1;
+        };
+        pos
     }
 
     #[must_use]
     pub fn find_edges(&self) -> Vec<Hex> {
-        todo!("`TileMap_shape::find_edges` not yet implemented")
+        let mut pos = self.find_edge_single();
+        let mut edge = vec![pos];
+        let mut last_state = self.get(pos);
+        
+        loop {
+            for i in pos.all_neighbors() {
+                match (last_state, self.get(i)) {
+                    (empty!(false), Some(true)) => {last_state = self.get(i); pos = i; edge.push(pos); break;}
+                    (empty!(false), empty!(false)) => continue,
+                    (Some(true), Some(true)) => continue,
+                    (Some(true), empty!(false)) => last_state = self.get(i)
+                }
+            }
+            // println!("Added {:?} First element is {:?} Are they equal? {}", edge.last(), edge.first(), edge.last() == edge.first());
+            if edge.last() == edge.first() {
+                edge.pop();
+                break edge
+            }
+        }
     }
     
 }
@@ -190,7 +212,7 @@ impl DrawHexMap for TileMap_shape {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
             if *state {
-                draw_polygon_mut(img, &points, Rgb([255, 255, 255]))
+                draw_polygon_mut(img, &points, if hex == Hex::ZERO {Rgb([255, 0, 0])} else {Rgb([255, 255, 255])})
             }
         }
     }
@@ -268,7 +290,7 @@ impl DrawHexMap for TileMap_templates {
         for (hex, state) in self.iter() {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
-            if let Some(template) = state { draw_polygon_mut(img, &points, template.color()) }
+            if let Some(template) = state { draw_polygon_mut(img, &points, if hex == Hex::ZERO {Rgb([255, 0, 0])} else {template.color()}) }
         }
     }
 }
@@ -282,8 +304,34 @@ pub struct TileMap_props {
 impl TileMap_props {
 
     #[must_use]
-    pub fn new(from: &TileMap_shape) -> Self {
-        todo!()
+    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Self {
+        let edge = from.find_edges();
+        let edge_len = edge.len();
+        let distance = edge_len / VILLAGE_COUNT;
+        let mut village_pos = Vec::new();
+
+        for i in 0..edge_len {
+            if i % distance == 0 {
+                village_pos.push(edge[i])
+            }
+        }
+        
+        Self { map: HexagonalMap::new(
+            Hex::ZERO, 
+            from.size_u32(), 
+            |h| 
+            if edge.contains(&h) {
+                if village_pos.contains(&h) {
+                    Some(Prop::Village(0))
+                } 
+                else {
+                    None
+                }
+            } 
+            else {
+                None
+            }
+        ), size: from.size }
     }
 
     #[inline(always)]
@@ -312,6 +360,28 @@ impl IndexMut<Hex> for TileMap_props {
 impl Get<Hex> for TileMap_props {
     fn get(&self, index: Hex) -> Option<&Self::Output> {
         self.map.get(index)
+    }
+}
+impl DrawHexMap for TileMap_props {
+    type ColorSpace = Rgb<u8>;
+
+    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig) {
+        for (hex, state) in self.iter() {
+            let pos = Self::get_pos(hex, image_config);
+            let points = get_hex_points(pos, image_config.hex_radius);
+            let color;
+            if hex == Hex::ZERO {
+                color = rgb!(255, 0, 0);
+            }
+            else if state.is_some() {
+                color = rgb!(100, 0, 100);
+            }
+            else {
+                color = rgb!(0, 0, 0);
+            }
+
+            draw_polygon_mut(img, &points, color)
+        }
     }
 }
 

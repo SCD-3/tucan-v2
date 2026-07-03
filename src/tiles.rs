@@ -1,5 +1,4 @@
 use image::Rgb;
-use rand::prelude::*;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct TileTemplate {
@@ -11,19 +10,19 @@ impl TileTemplate {
 
     #[inline(always)]
     #[must_use]
-    pub fn color(&self) -> Rgb<u8> {
+    pub const fn color(&self) -> Rgb<u8> {
         self.color
     }
 
     #[inline(always)]
     #[must_use]
-    pub fn amount_small(&self) -> usize {
+    pub const fn amount_small(&self) -> usize {
         self.amount_small
     }
 
     #[inline(always)]
     #[must_use]
-    pub fn amount_big(&self) -> usize {
+    pub const fn amount_big(&self) -> usize {
         self.amount_big
     }
 }
@@ -48,18 +47,9 @@ pub enum Prop {
     Village(u8),
     Monolith,
     Book,
-    Tucan,
+    Bird,
     WeirdMonkey,
     Dragon
-}
-
-pub fn get_tile_stack<R: Rng>(rng: &mut R) -> Vec<TileTemplate> {
-    let mut tile_stack = Vec::new();
-    for i in [SAND, FOREST, MOUNTAIN, WATER] {
-        tile_stack.push(i);
-    };
-    tile_stack.shuffle(rng);
-    tile_stack
 }
 
 
