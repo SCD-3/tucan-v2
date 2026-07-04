@@ -17,12 +17,13 @@ fn main() -> Result<(), Box<dyn Error>>{
     let image_config = ImageConfig { height: img1.height(), width: img1.width(), hex_radius: 30.0 };
     
     loop {
-        let raw = TileMap_rawShapeGen::new(MapSize::Small, &mut rng);
+        let raw = TileMap_rawShapeGen::new(MapSize::Big, &mut rng);
         let shape = TileMap_shape::new(raw);
-        let templates = TileMap_templates::new(&mut rng, &shape);
-        let props = TileMap_props::new(&mut rng, &shape);
 
         if shape.has_no_holes() {
+            let templates = TileMap_templates::new(&mut rng, &shape);
+            let props = TileMap_props::new(&mut rng, &shape);
+            
             templates.draw(&mut img1, image_config);
             img1.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image.png")?;
 

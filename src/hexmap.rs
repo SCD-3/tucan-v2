@@ -1,16 +1,18 @@
 use std::ops::{Index, IndexMut};
-
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
 use image::Rgb;
 use imageproc::drawing::{Canvas, draw_polygon_mut};
 use rand::prelude::*;
-use crate::{tiles::*, drawing::*};
+use crate::{drawing::*, tiles::*};
 
 pub const SMALL_MAP_SIZE: u8 = 73;
 pub const BIG_MAP_SIZE:   u8 = 104;
 
-const MIN_NEIGHBORS: u8 = 2;
-const VILLAGE_COUNT: usize = 10;
+const MIN_HEX_NEIGHBORS: u8 = 2;
+
+const VILLAGE_COUNT: u8 = 10;
+const VILLAGE_OFFSET: u8 = 3;
+const MIN_PROP_DISTANEC: usize = 2;
 
 /// Matching for pattern `Option<T>::Some(a)` or `Option<T>::None`
 /// 
@@ -21,9 +23,13 @@ macro_rules! empty {
     };
 }
 
+/// RGB colors.
+///
+/// For the purpose of color conversion, as well as blending, the implementation of `Pixel`
+/// assumes an `sRGB` color space of its data.
 macro_rules! rgb {
     ($r:expr, $g:expr, $b:expr) => {
-        Rgb([$r, $g, $b])
+        Rgb::<u8>([$r, $g, $b])
     };
 }
 
@@ -55,7 +61,7 @@ impl TileMap_rawShapeGen {
         let mut map = Self { map, size };
 
         for i in 0..size as u8 {
-            map.do_a_run(rng, i < MIN_NEIGHBORS);
+            map.do_a_run(rng, i < MIN_HEX_NEIGHBORS);
         };
         map
     }
@@ -74,8 +80,8 @@ impl TileMap_rawShapeGen {
     fn do_a_run<R: Rng>(&mut self, rng: &mut R, overule_min_neighbors: bool) {
         // println!("{}", self.iter().filter(|(_, state)| matches!(state, RawTileState::FreeToTake)).collect::<Vec<_>>().len());
 
-        let (hex, _) = self.map.iter()
-        .filter(|(hex, state)| matches!(state, RawTileState::FreeToTake) && (overule_min_neighbors || self.count_neighbors(*hex) >= MIN_NEIGHBORS))
+        let (hex, _) = self.iter()
+        .filter(|(hex, state)| matches!(state, RawTileState::FreeToTake) && (overule_min_neighbors || self.count_neighbors(*hex) >= MIN_HEX_NEIGHBORS))
         .choose(rng)
         .expect("We ran out of tiles. Congrats");
 
@@ -298,44 +304,53 @@ impl DrawHexMap for TileMap_templates {
 
 #[allow(non_camel_case_types)]
 pub struct TileMap_props {
-    map: HexagonalMap<Option<Prop>>,
+    map: HexagonalMap<PropOption>,
     size: MapSize
 }
 impl TileMap_props {
 
     #[must_use]
     pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Self {
-        let edge = from.find_edges();
-        let edge_len = edge.len();
-        let distance = edge_len / VILLAGE_COUNT;
-        let mut village_pos = Vec::new();
+        let mut output = Self {
+            map: HexagonalMap::new(Hex::ZERO, from.size_u32(), |_| PropOption::CanHave), 
+            size: from.size
+        };
+        output.place_villages(from);
 
-        for i in 0..edge_len {
-            if i % distance == 0 {
-                village_pos.push(edge[i])
+        output
+    }
+
+    fn trim_tiles_too_close(&mut self) {
+        todo!()
+    }
+
+    fn place_villages(&mut self, shape: &TileMap_shape) {
+        let edge = shape.find_edges();
+        let edge_len = edge.len();
+        let distance = edge_len / VILLAGE_COUNT as usize;
+        let mut village_pos: Vec<Hex> = Vec::new();
+        let mut edge_iter = edge.iter();
+        for _ in 0..VILLAGE_COUNT {
+            for _ in 0..distance-1 {edge_iter.next();};
+            village_pos.push(*edge_iter.next().unwrap());
+        }
+        if village_pos.len() != VILLAGE_COUNT as usize {
+            panic!("invalid number of villages. Expected {VILLAGE_COUNT}, got {}.", village_pos.len())
+        }
+
+        for (id, hex) in village_pos.iter().enumerate() {
+            let value = self.get(*hex);
+            if value.is_none() || !value.unwrap().can_have_prop() {
+                panic!("attempted to place village at invalid position, at hex {hex:?}, with value {value:?}")
+            }
+            else {
+                self[*hex].give_prop(Prop::Village(id as u8 + 1));
             }
         }
-        
-        Self { map: HexagonalMap::new(
-            Hex::ZERO, 
-            from.size_u32(), 
-            |h| 
-            if edge.contains(&h) {
-                if village_pos.contains(&h) {
-                    Some(Prop::Village(0))
-                } 
-                else {
-                    None
-                }
-            } 
-            else {
-                None
-            }
-        ), size: from.size }
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<Prop>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (Hex, &PropOption)> {
         self.map.iter()
     }
 
@@ -347,7 +362,7 @@ impl TileMap_props {
 }
 
 impl Index<Hex> for TileMap_props {
-    type Output = Option<Prop>;
+    type Output = PropOption;
     fn index(&self, index: Hex) -> &Self::Output {
         &self.map[index]
     }
@@ -374,7 +389,11 @@ impl DrawHexMap for TileMap_props {
                 color = rgb!(255, 0, 0);
             }
             else if state.is_some() {
-                color = rgb!(100, 0, 100);
+                color = match state.unwrap() {
+                    Some(Prop::Village(_)) => rgb!(255, 0, 255),
+                    Some(_) => rgb!(0, 255, 0),
+                    None => rgb!(255, 255, 0)
+                }
             }
             else {
                 color = rgb!(0, 0, 0);

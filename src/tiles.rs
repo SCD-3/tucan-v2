@@ -1,6 +1,51 @@
 use image::Rgb;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum PropOption {
+    Some(Prop),
+    CanHave,
+    NotAllowed
+}
+impl PropOption {
+    
+    #[must_use]
+    #[inline(always)]
+    pub const fn is_some(self) -> bool {
+        matches!(self, PropOption::Some(_))
+    }
+
+    #[must_use]
+    #[inline(always)]
+    pub const fn can_have_prop(self) -> bool {
+        matches!(self, PropOption::CanHave)
+    }
+
+    #[must_use]
+    #[inline(always)]
+    pub const fn is_allowed(self) -> bool {
+        !matches!(self, PropOption::NotAllowed)
+    }
+
+    #[must_use]
+    pub const fn unwrap(self) -> Option<Prop> {
+        match self {
+            PropOption::Some(prop) => Some(prop),
+            PropOption::CanHave => None,
+            PropOption::NotAllowed => panic!("called `PropOption::unwrap()` on a `PropOption::NotAllowed` value")
+        }
+    }
+
+    pub fn give_prop(&mut self, prop: Prop) {
+        if !self.can_have_prop() {
+            panic!("can't place prop {prop:?}")
+        }
+        else {
+            *self = PropOption::Some(prop);
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct TileTemplate {
     color: Rgb<u8>,
     amount_small: usize,
@@ -30,7 +75,7 @@ impl TileTemplate {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct Tile {
     pub template: Option<TileTemplate>,
-    pub prop: Option<Prop>
+    pub prop: PropOption
 
 }
 impl Tile {
@@ -51,7 +96,6 @@ pub enum Prop {
     WeirdMonkey,
     Dragon
 }
-
 
 
 pub const SAND:     TileTemplate = TileTemplate { color: Rgb([203, 189, 147]), amount_small: 24, amount_big: 34 };
