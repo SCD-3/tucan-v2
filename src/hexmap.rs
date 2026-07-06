@@ -1,9 +1,11 @@
-use std::ops::{Index, IndexMut};
+use std::{error::Error, ops::{Index, IndexMut}};
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
 use image::Rgb;
 use imageproc::drawing::{Canvas, draw_polygon_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
+
+type Result<T> = core::result::Result<T, Box<dyn Error>>;
 
 pub const BIG_MAP_SIZE:   u8 = 104;
 pub const SMALL_MAP_SIZE: u8 = 73;
@@ -248,14 +250,15 @@ pub struct TileMap_templates {
 impl TileMap_templates {
 
     #[must_use]
-    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Self {
+    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Result<Self> {
         let mut tiles = Self::prepare_random_tiles(rng, from.size);
         // println!("{}", from.iter().filter(|(_, a)| **a).count());
 
-        Self { map: HexagonalMap::new(
+        let out = Self { map: HexagonalMap::new(
             Hex::ZERO, 
             match_size!(from.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
-            |h| if from[h] {Some(tiles.next().unwrap())} else {None}), size: from.size }
+            |h| if from[h] {Some(tiles.next().unwrap())} else {None}), size: from.size };
+        Ok(out)
     }
 
     #[inline(always)]
@@ -325,7 +328,7 @@ pub struct TileMap_props {
 impl TileMap_props {
 
     #[must_use]
-    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Self {
+    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Result<Self> {
         let mut output = Self {
             map: HexagonalMap::new(
                 Hex::ZERO, 
@@ -333,13 +336,13 @@ impl TileMap_props {
                 |_| PropOption::NotAllowed), 
             size: from.size
         };
-        output.place_villages(from);
-        output.place_props(from);
+        output.place_villages(from)?;
+        output.place_props(from)?;
 
-        output
+        Ok(output)
     }
 
-    fn place_villages(&mut self, shape: &TileMap_shape) {
+    fn place_villages(&mut self, shape: &TileMap_shape) -> Result<()> {
         let edge = shape.find_edges();
         let edge_len = edge.len();
         let distance = edge_len as f64 / VILLAGE_COUNT as f64;
@@ -353,10 +356,11 @@ impl TileMap_props {
 
         for (id, hex) in village_pos.iter().enumerate() {
             self[*hex].give_prop(Prop::Village(id as u8 + 1), true);
-        }
+        };
+        Ok(())
     }
 
-    fn place_props(&mut self, shape: &TileMap_shape) {
+    fn place_props(&mut self, shape: &TileMap_shape) -> Result<()> {
         macro_rules! prepare_new_ring {
             ($size:expr) => {
                 Hex::ZERO.ring($size).step_by(MIN_PROP_DISTANCE as usize)
@@ -384,8 +388,8 @@ impl TileMap_props {
                 },
                 None => {ring_distance += MIN_PROP_DISTANCE; ring = prepare_new_ring!(ring_distance); println!("Expanding ring. New radius: {ring_distance}")}
             }
-
         }
+        Ok(())
     }
 
     #[inline(always)]
@@ -448,12 +452,25 @@ pub struct TileMap {
 }
 impl TileMap {
 
-    #[must_use]
-    pub fn new(templates: TileMap_templates, props: TileMap_props) -> Self {
+    pub fn new(templates: TileMap_templates, props: TileMap_props) -> Result<Self> {
         assert_eq!(templates.size, props.size, "Both sub-mapes must be same size");
         let size = templates.size;
 
-        Self { map: HexagonalMap::new(Hex::ZERO, match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), |pos| {Tile { template: templates[pos], prop: props[pos]}}), size: templates.size }
+        Ok(
+            Self { 
+                map: HexagonalMap::new(
+                    Hex::ZERO, 
+                    match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
+                    |pos| {
+                        Tile { 
+                            template: templates[pos], 
+                            prop: props[pos]
+                        }
+                    }
+                ), 
+                size: templates.size 
+            }
+        )
     }
 
     #[inline(always)]
