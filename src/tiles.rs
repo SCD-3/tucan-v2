@@ -10,7 +10,7 @@ impl PropOption {
     
     #[must_use]
     #[inline(always)]
-    pub const fn is_some(self) -> bool {
+    pub const fn has_prop(self) -> bool {
         matches!(self, PropOption::Some(_))
     }
 
@@ -35,8 +35,17 @@ impl PropOption {
         }
     }
 
-    pub fn give_prop(&mut self, prop: Prop) {
-        if !self.can_have_prop() {
+    pub fn allow_prop(&mut self) {
+        if self.has_prop() {
+            panic!("place taken; can't allow prop")
+        }
+        else {
+            *self = Self::CanHave
+        }
+    }
+
+    pub fn give_prop(&mut self, prop: Prop, force: bool) {
+        if !force && !self.can_have_prop() {
             panic!("can't place prop {prop:?}")
         }
         else {
