@@ -1,11 +1,11 @@
-use std::{error::Error, ops::{Index, IndexMut}};
+use std::ops::{Index, IndexMut};
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
 use image::Rgb;
 use imageproc::drawing::{Canvas, draw_polygon_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
 
-type Result<T> = core::result::Result<T, Box<dyn Error>>;
+type Result<T> = core::result::Result<T, String>;
 
 pub const BIG_MAP_SIZE:   u8 = 104;
 pub const SMALL_MAP_SIZE: u8 = 73;
@@ -16,7 +16,7 @@ const HEXMAP_RADIUS_SMALL: u32 = 5;
 const MIN_HEX_NEIGHBORS: u8 = 2;
 
 const VILLAGE_COUNT: u8 = 10;
-const VILLAGE_OFFSET: u8 = 3;
+// const VILLAGE_OFFSET: u8 = 3;
 
 const MIN_PROP_DISTANCE: u32 = 2;
 const ARTIFACT_COUNT_BIG: usize = 15;
@@ -249,7 +249,6 @@ pub struct TileMap_templates {
 }
 impl TileMap_templates {
 
-    #[must_use]
     pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Result<Self> {
         let mut tiles = Self::prepare_random_tiles(rng, from.size);
         // println!("{}", from.iter().filter(|(_, a)| **a).count());
@@ -257,7 +256,13 @@ impl TileMap_templates {
         let out = Self { map: HexagonalMap::new(
             Hex::ZERO, 
             match_size!(from.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
-            |h| if from[h] {Some(tiles.next().unwrap())} else {None}), size: from.size };
+            |h| if from[h] {
+                Some(tiles.next().expect("invalid number of tiles in `TileMap_templates::prepare_random_tiles`"))
+            } 
+            else {
+                None
+            }
+        ), size: from.size };
         Ok(out)
     }
 
@@ -327,8 +332,7 @@ pub struct TileMap_props {
 }
 impl TileMap_props {
 
-    #[must_use]
-    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Result<Self> {
+    pub fn new<R: Rng>(_rng: &mut R, from: &TileMap_shape) -> Result<Self> {
         let mut output = Self {
             map: HexagonalMap::new(
                 Hex::ZERO, 
@@ -349,7 +353,7 @@ impl TileMap_props {
         let mut i = 0f64;
         let mut village_pos: Vec<Hex> = Vec::new();
         for _ in 0..VILLAGE_COUNT {
-            village_pos.push(*edge.get(i.round() as usize).expect(format!("out of edge. Index {i}. Edge_len {edge_len}").as_str()));
+            village_pos.push(*edge.get(i.round() as usize).ok_or(format!("out of edge. Index {i}. Edge_len {edge_len}"))?);
             i += distance;
         }
         assert_eq!(village_pos.len(), VILLAGE_COUNT as usize, "invalid number of villages. Expected {VILLAGE_COUNT}, got {}.", village_pos.len());
@@ -377,8 +381,8 @@ impl TileMap_props {
             }
             match ring.next() {
                 Some(hex) => {if 
-                        shape[hex] && 
-                        !self[hex].is_allowed() 
+                        *shape.get(hex).ok_or(format!("ring index out of bounds. Hex {hex:?}"))? && 
+                        !self.get(hex).ok_or(format!("ring index out of bounds. Hex {hex:?}"))?.is_allowed() 
                         && !hex.all_neighbors().iter()
                             .any(|h| self.get(*h).unwrap_or(&PropOption::NotAllowed).has_prop()) 
                     {
@@ -427,18 +431,17 @@ impl DrawHexMap for TileMap_props {
         for (hex, state) in self.iter() {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
-            let color;
-            if hex == Hex::ZERO {
-                color = rgb!(255, 0, 0);
+            let color = if hex == Hex::ZERO {
+                rgb!(255, 0, 0)
             }
             else {
-                color = match state {
+                match state {
                     PropOption::Some(Prop::Village(_)) => rgb!(255, 0, 255),
                     PropOption::Some(_) => rgb!(100, 0, 100),
                     PropOption::CanHave => rgb!(0, 255, 0),
                     PropOption::NotAllowed => rgb!(0, 0, 0)
                 }
-            }
+            };
             draw_polygon_mut(img, &points, color)
         }
     }

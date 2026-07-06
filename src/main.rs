@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>>{
         let shape = TileMap_shape::new(raw);
 
         if shape.has_no_holes() {
-            let templates = TileMap_templates::new(&mut rng, &shape)?;
+            let _templates = TileMap_templates::new(&mut rng, &shape)?;
             let props = TileMap_props::new(&mut rng, &shape)?;
             
             shape.draw(&mut img1, image_config);
