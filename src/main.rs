@@ -4,35 +4,50 @@ mod drawing;
 
 use std::error::Error;
 
+use rand::{Rng, rng};
 use hexmap::*;
-use rand::rng;
 use image::*;
 
 use crate::drawing::{DrawHexMap, ImageConfig};
 
-fn main() -> Result<(), Box<dyn Error>>{
+const WIDTH: u32 = 2480;
+const HEIGHT: u32 = 1754;
+
+fn try_gen<R: Rng>(rng: &mut R) -> Result<(TileMap_shape, TileMap_templates, TileMap_props), String> {
+    let raw = TileMap_rawShapeGen::new(MapSize::Big, rng)?;
+    let shape = TileMap_shape::new(raw)?;
+
+    let templates = TileMap_templates::new(rng, &shape)?;
+    let props = TileMap_props::new(rng, &shape)?;
+    Ok((shape, templates, props))
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
     let mut rng = rng();
-    let mut img1: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(2480, 1754);
-    let mut img2: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(2480, 1754);
-    let image_config = ImageConfig { height: img1.height(), width: img1.width(), hex_radius: 60.0 };
+    let mut img1: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
+    let mut img2: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
+    let mut img3: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
+    let image_config = ImageConfig { height: HEIGHT, width: WIDTH, hex_radius: 60.0 };
     
-    loop {
-        let raw = TileMap_rawShapeGen::new(MapSize::Big, &mut rng);
-        let shape = TileMap_shape::new(raw);
-
-        if shape.has_no_holes() {
-            let _templates = TileMap_templates::new(&mut rng, &shape)?;
-            let props = TileMap_props::new(&mut rng, &shape)?;
-            
-            shape.draw(&mut img1, image_config);
-            img1.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_shape.png")?;
-
-            props.draw(&mut img2, image_config);
-            img2.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_props.png")?;
-
-            break;
+    let (shape, templates, props) = loop {
+        let res= try_gen(&mut rng);
+        if res.is_ok() {
+            break res.unwrap()
         }
-    }
+        else {
+            println!("{}", res.err().unwrap())
+        }
+    };
+    
+    
+    shape.draw(&mut img1, image_config);
+    img1.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_shape.png")?;
+
+    props.draw(&mut img2, image_config);
+    img2.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_props.png")?;
+
+    templates.draw(&mut img3, image_config);
+    img3.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_templates.png")?;
 
     Ok(())
 }

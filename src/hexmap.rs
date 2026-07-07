@@ -71,7 +71,7 @@ pub struct TileMap_rawShapeGen {
 impl TileMap_rawShapeGen {
 
     #[must_use]
-    pub fn new<R: Rng>(size: MapSize, rng: &mut R) -> Self {
+    pub fn new<R: Rng>(size: MapSize, rng: &mut R) -> Result<Self> {
         let mut map = HexagonalMap::new(Hex::ZERO, match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), |_| RawTileState::Unknown);
         map[Hex::ZERO] = RawTileState::FreeToTake;
 
@@ -80,7 +80,7 @@ impl TileMap_rawShapeGen {
         for i in 0..size as u8 {
             map.do_a_run(rng, i < MIN_HEX_NEIGHBORS);
         };
-        map
+        Ok(map)
     }
 
     #[inline(always)]
@@ -148,13 +148,19 @@ pub struct TileMap_shape {
 impl TileMap_shape {
     
     #[must_use]
-    pub fn new(from: TileMap_rawShapeGen) -> Self {
+    pub fn new(from: TileMap_rawShapeGen) -> Result<Self> {
         let map = HexagonalMap::new(Hex::ZERO, match_size!(from.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), |h| matches!(from[h], RawTileState::Taken));
-        Self { map, size: from.size }
+        let out = Self { map, size: from.size };
+        if out.has_no_holes() {
+            Ok(out)
+        }
+        else {
+            Err("found 1 size holes in the shape")?
+        }
     }
     
     #[must_use]
-    pub fn has_no_holes(&self) -> bool {
+    fn has_no_holes(&self) -> bool {
         for (hex, state) in self.iter() {
             if !*state
                 && hex.all_neighbors().iter().all(|s| matches!(self.get(*s), Some(&true))) {
@@ -341,6 +347,9 @@ impl TileMap_props {
             size: from.size
         };
         output.place_villages(from)?;
+        if output.has_invalid_villages() {
+            Err("found villages placed too close to each others")?;
+        }
         output.place_props(from)?;
 
         Ok(output)
@@ -362,6 +371,23 @@ impl TileMap_props {
             self[*hex].give_prop(Prop::Village(id as u8 + 1), true);
         };
         Ok(())
+    }
+
+    fn has_invalid_villages(&self) -> bool {
+        self.iter().any(|(hex, prop)| {
+            match prop {
+                PropOption::Some(Prop::Village(_)) => {
+                    hex
+                    .all_neighbors()
+                    .iter()
+                    .any(
+                        |h| 
+                        matches!(self.get(*h), Some(PropOption::Some(Prop::Village(_))))
+                    )
+                }
+                _ => false
+            }
+        })
     }
 
     fn place_props(&mut self, shape: &TileMap_shape) -> Result<()> {
@@ -387,10 +413,13 @@ impl TileMap_props {
                             .any(|h| self.get(*h).unwrap_or(&PropOption::NotAllowed).has_prop()) 
                     {
                     
-                    placed_props += 1; self[hex].allow_prop(); println!("Allowing at {hex:?}. Prop number: {placed_props}")
+                    placed_props += 1; self[hex].allow_prop(); 
+                    // println!("Allowing at {hex:?}. Prop number: {placed_props}")
                     }
                 },
-                None => {ring_distance += MIN_PROP_DISTANCE; ring = prepare_new_ring!(ring_distance); println!("Expanding ring. New radius: {ring_distance}")}
+                None => {ring_distance += MIN_PROP_DISTANCE; ring = prepare_new_ring!(ring_distance); 
+                    // println!("Expanding ring. New radius: {ring_distance}")
+                }
             }
         }
         Ok(())
