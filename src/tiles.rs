@@ -58,7 +58,10 @@ impl PropOption {
 pub struct TileTemplate {
     color: Rgb<u8>,
     amount_small: usize,
-    amount_big: usize
+    amount_big: usize,
+
+    primary_art: Prop,
+    secondary_art: Option<Prop>
 }
 impl TileTemplate {
 
@@ -78,6 +81,18 @@ impl TileTemplate {
     #[must_use]
     pub const fn amount_big(&self) -> usize {
         self.amount_big
+    }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn primary_art(&self) -> Prop {
+        self.primary_art
+    }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn secondary_art(&self) -> Option<Prop> {
+        self.secondary_art
     }
 }
 
@@ -107,7 +122,7 @@ pub enum Prop {
 }
 
 
-pub const SAND:     TileTemplate = TileTemplate { color: Rgb([203, 189, 147]), amount_small: 24, amount_big: 34 };
-pub const FOREST:   TileTemplate = TileTemplate { color: Rgb([46 , 111, 64 ]), amount_small: 20, amount_big: 29 };
-pub const MOUNTAIN: TileTemplate = TileTemplate { color: Rgb([140, 140, 140]), amount_small: 16, amount_big: 24 };
-pub const WATER:    TileTemplate = TileTemplate { color: Rgb([46 , 108, 216]), amount_small: 13, amount_big: 17 };
+pub const SAND:     TileTemplate = TileTemplate { color: Rgb([203, 189, 147]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
+pub const FOREST:   TileTemplate = TileTemplate { color: Rgb([46 , 111, 64 ]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
+pub const MOUNTAIN: TileTemplate = TileTemplate { color: Rgb([140, 140, 140]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
+pub const WATER:    TileTemplate = TileTemplate { color: Rgb([46 , 108, 216]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };

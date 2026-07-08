@@ -17,8 +17,8 @@ fn try_gen<R: Rng>(rng: &mut R) -> Result<(TileMap_shape, TileMap_templates, Til
     let raw = TileMap_rawShapeGen::new(MapSize::Big, rng)?;
     let shape = TileMap_shape::new(raw)?;
 
-    let templates = TileMap_templates::new(rng, &shape)?;
     let props = TileMap_props::new(rng, &shape)?;
+    let templates = TileMap_templates::new(rng, &shape, &props)?;
     Ok((shape, templates, props))
 }
 
@@ -31,12 +31,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let (shape, templates, props) = loop {
         let res= try_gen(&mut rng);
-        if res.is_ok() {
-            break res.unwrap()
-        }
-        else {
-            println!("{}", res.err().unwrap())
-        }
+        if let Ok(value) = res {break value} 
+        else {println!("{}", res.err().unwrap())}
     };
     
     

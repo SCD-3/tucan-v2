@@ -21,6 +21,8 @@ const VILLAGE_COUNT: u8 = 10;
 const MIN_PROP_DISTANCE: u32 = 2;
 const ARTIFACT_COUNT_BIG: usize = 15;
 const ARTIFACT_COUNT_SMALL: usize = 10;
+const ARTIFACT_COUNT_PER_ART_BIG: usize = 3;
+const ARTIFACT_COUNT_PER_ART_SMALL: usize = 2;
 
 /// Matching for pattern `Option<T>::Some(a)|Option<T>::None`.
 /// 
@@ -41,6 +43,11 @@ macro_rules! rgb {
     };
 }
 
+/// First parameter is map_size
+/// 
+/// Second is if big
+/// 
+/// Third is if small
 macro_rules! match_size {
     ($name:expr, $big:expr, $small:expr) => {
         match $name {
@@ -57,6 +64,8 @@ pub enum MapSize {
     Big   = BIG_MAP_SIZE
 }
 
+#[allow(non_camel_case_types)]
+#[derive(Clone)]
 pub enum RawTileState {
     FreeToTake,
     Taken,
@@ -64,13 +73,13 @@ pub enum RawTileState {
 }
 
 #[allow(non_camel_case_types)]
+#[derive(Clone)]
 pub struct TileMap_rawShapeGen {
     map: HexagonalMap<RawTileState>,
     size: MapSize
 }
 impl TileMap_rawShapeGen {
-
-    #[must_use]
+    
     pub fn new<R: Rng>(size: MapSize, rng: &mut R) -> Result<Self> {
         let mut map = HexagonalMap::new(Hex::ZERO, match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), |_| RawTileState::Unknown);
         map[Hex::ZERO] = RawTileState::FreeToTake;
@@ -141,13 +150,13 @@ impl Get<Hex> for TileMap_rawShapeGen {
 
 
 #[allow(non_camel_case_types)]
+#[derive(Clone)]
 pub struct TileMap_shape {
     map: HexagonalMap<bool>,
     size: MapSize
 }
 impl TileMap_shape {
     
-    #[must_use]
     pub fn new(from: TileMap_rawShapeGen) -> Result<Self> {
         let map = HexagonalMap::new(Hex::ZERO, match_size!(from.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), |h| matches!(from[h], RawTileState::Taken));
         let out = Self { map, size: from.size };
@@ -249,26 +258,27 @@ impl DrawHexMap for TileMap_shape {
 
 
 #[allow(non_camel_case_types)]
+#[derive(Clone)]
 pub struct TileMap_templates {
     map: HexagonalMap<Option<TileTemplate>>,
     size: MapSize
 }
 impl TileMap_templates {
 
-    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Result<Self> {
-        let mut tiles = Self::prepare_random_tiles(rng, from.size);
+    pub fn new<R: Rng>(rng: &mut R, shape: &TileMap_shape, props: &TileMap_props) -> Result<Self> {
+        let mut tiles = Self::prepare_random_tiles(rng, shape.size);
         // println!("{}", from.iter().filter(|(_, a)| **a).count());
 
         let out = Self { map: HexagonalMap::new(
             Hex::ZERO, 
-            match_size!(from.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
-            |h| if from[h] {
+            match_size!(shape.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
+            |h| if shape[h] {
                 Some(tiles.next().expect("invalid number of tiles in `TileMap_templates::prepare_random_tiles`"))
             } 
             else {
                 None
             }
-        ), size: from.size };
+        ), size: shape.size };
         Ok(out)
     }
 
@@ -283,19 +293,10 @@ impl TileMap_templates {
         self.size as u32
     }
 
-    pub fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = TileTemplate> {
+    fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = TileTemplate> {
         let mut out = Vec::new();
-        match map_size {
-            MapSize::Small => {
-                for template in [SAND, FOREST, MOUNTAIN, WATER] {
-                    out.extend(vec![template; template.amount_small()]);
-                }
-            },
-            MapSize::Big => {
-                for template in [SAND, FOREST, MOUNTAIN, WATER] {
-                    out.extend(vec![template; template.amount_big()]);
-                }
-            }
+        for template in [SAND, FOREST, MOUNTAIN, WATER] {
+            out.extend(vec![template; match_size!(map_size, template.amount_big(), template.amount_small())]);
         }
         out.shuffle(rng);
         out.into_iter()
@@ -332,13 +333,14 @@ impl DrawHexMap for TileMap_templates {
 
 
 #[allow(non_camel_case_types)]
+#[derive(Clone)]
 pub struct TileMap_props {
     map: HexagonalMap<PropOption>,
     size: MapSize
 }
 impl TileMap_props {
 
-    pub fn new<R: Rng>(_rng: &mut R, from: &TileMap_shape) -> Result<Self> {
+    pub fn new<R: Rng>(rng: &mut R, from: &TileMap_shape) -> Result<Self> {
         let mut output = Self {
             map: HexagonalMap::new(
                 Hex::ZERO, 
@@ -350,7 +352,18 @@ impl TileMap_props {
         if output.has_invalid_villages() {
             Err("found villages placed too close to each others")?;
         }
-        output.place_props(from)?;
+        output.place_prop_places(from)?;
+        // let clone = output.clone();
+        // let spots = clone.iter().filter_map(|a| if let (h, PropOption::CanHave) = a {Some(h)} else {None});
+        // for (prop, place) in Iterator::zip(Self::prepare_random_props(rng,from.size), spots) {
+        //     output[place].give_prop(prop, false);
+        // }
+        let mut props = Self::prepare_random_props(rng,from.size);
+        output.map
+        .iter_mut()
+        .for_each(|(_, prop)| 
+            if let PropOption::CanHave = *prop 
+                {prop.give_prop(props.next().expect("ran out of random props"), false);});
 
         Ok(output)
     }
@@ -390,7 +403,7 @@ impl TileMap_props {
         })
     }
 
-    fn place_props(&mut self, shape: &TileMap_shape) -> Result<()> {
+    fn place_prop_places(&mut self, shape: &TileMap_shape) -> Result<()> {
         macro_rules! prepare_new_ring {
             ($size:expr) => {
                 Hex::ZERO.ring($size).step_by(MIN_PROP_DISTANCE as usize)
@@ -425,6 +438,24 @@ impl TileMap_props {
         Ok(())
     }
 
+    fn prepare_random_props<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = Prop> {
+        let mut out = Vec::new();
+        let artifact_count_per_art = match_size!(map_size, ARTIFACT_COUNT_PER_ART_BIG, ARTIFACT_COUNT_PER_ART_SMALL);
+        for prop in [SAND.primary_art(), FOREST.primary_art(), MOUNTAIN.primary_art(), WATER.primary_art()] {
+            out.extend(vec![prop; artifact_count_per_art]);
+        }
+        // for prop in [SAND.secondary_art(), FOREST.secondary_art(), MOUNTAIN.secondary_art(), WATER.secondary_art()] {
+        //     if let Some(item) = prop {out.extend(vec![item; artifact_count_per_art])};
+        // }
+        for item in [SAND.secondary_art(), FOREST.secondary_art(), MOUNTAIN.secondary_art(), WATER.secondary_art()]
+            .into_iter()
+            .flatten() 
+        {out.extend(vec![item; artifact_count_per_art])}
+
+        out.shuffle(rng);
+        out.into_iter()
+    }
+
     #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &PropOption)> {
         self.map.iter()
@@ -436,7 +467,6 @@ impl TileMap_props {
         self.size as u32
     }
 }
-
 impl Index<Hex> for TileMap_props {
     type Output = PropOption;
     fn index(&self, index: Hex) -> &Self::Output {
