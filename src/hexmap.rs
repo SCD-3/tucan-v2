@@ -490,14 +490,20 @@ impl DrawHexMap for TileMap_props {
         for (hex, state) in self.iter() {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
-            let color = if hex == Hex::ZERO {
+            let color = if false {
+                // hex == Hex::ZERO
                 rgb!(255, 0, 0)
             }
             else {
                 match state {
-                    PropOption::Some(Prop::Village(_)) => rgb!(255, 0, 255),
-                    PropOption::Some(_) => rgb!(100, 0, 100),
-                    PropOption::CanHave => rgb!(0, 255, 0),
+                    PropOption::Some(Prop::Village(_))  => rgb!(255, 0  , 255),
+                    PropOption::Some(Prop::Monolith)    => rgb!(50 , 50 , 50 ),
+                    PropOption::Some(Prop::Book)        => rgb!(100, 50 , 0  ),
+                    PropOption::Some(Prop::Bird)        => rgb!(0  , 200, 0  ),
+                    PropOption::Some(Prop::WeirdMonkey) => rgb!(100, 0  , 100),
+                    PropOption::Some(Prop::Dragon)      => rgb!(50 , 255, 255),
+
+                    PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}"),
                     PropOption::NotAllowed => rgb!(0, 0, 0)
                 }
             };
