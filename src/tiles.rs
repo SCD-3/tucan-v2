@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use image::Rgb;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -56,6 +58,8 @@ impl PropOption {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct TileTemplate {
+    name: &'static str,
+
     color: Rgb<u8>,
     amount_small: usize,
     amount_big: usize,
@@ -94,6 +98,19 @@ impl TileTemplate {
     pub const fn secondary_art(&self) -> Option<Prop> {
         self.secondary_art
     }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        self.name
+    }
+}
+
+impl Display for TileTemplate {
+    
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -120,9 +137,21 @@ pub enum Prop {
     WeirdMonkey,
     Dragon
 }
+impl Prop {
+    
+    pub fn get_template(self) -> TileTemplate {
+        for tempalte in TEMPLATES {
+            if tempalte.primary_art == self || tempalte.secondary_art == Some(self) {
+                return tempalte;
+            }
+        }
+        panic!("did not find template for prop {self:?}")
+    }
+}
 
+const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];
 
-pub const SAND:     TileTemplate = TileTemplate { color: Rgb([203, 189, 147]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
-pub const FOREST:   TileTemplate = TileTemplate { color: Rgb([46 , 111, 64 ]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
-pub const MOUNTAIN: TileTemplate = TileTemplate { color: Rgb([140, 140, 140]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
-pub const WATER:    TileTemplate = TileTemplate { color: Rgb([46 , 108, 216]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };
+pub const SAND:     TileTemplate = TileTemplate { name: "SAND"    , color: Rgb([203, 189, 147]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
+pub const FOREST:   TileTemplate = TileTemplate { name: "FOREST"  , color: Rgb([46 , 111, 64 ]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
+pub const MOUNTAIN: TileTemplate = TileTemplate { name: "MOUNTAIN", color: Rgb([140, 140, 140]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
+pub const WATER:    TileTemplate = TileTemplate { name: "WATER"   , color: Rgb([46 , 108, 216]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };

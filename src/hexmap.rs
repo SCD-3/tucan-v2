@@ -266,10 +266,12 @@ pub struct TileMap_templates {
 impl TileMap_templates {
 
     pub fn new<R: Rng>(rng: &mut R, shape: &TileMap_shape, props: &TileMap_props) -> Result<Self> {
+        assert_eq!(shape.size, props.size, "Both sub-mapes must be same size");
+
         let mut tiles = Self::prepare_random_tiles(rng, shape.size);
         // println!("{}", from.iter().filter(|(_, a)| **a).count());
 
-        let out = Self { map: HexagonalMap::new(
+        let mut out = Self { map: HexagonalMap::new(
             Hex::ZERO, 
             match_size!(shape.size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
             |h| if shape[h] {
@@ -279,6 +281,9 @@ impl TileMap_templates {
                 None
             }
         ), size: shape.size };
+        drop(tiles); // we no longer need that iterator, but we do need rng from it
+
+        out.fix_tiles_on_artifacts(rng, props)?;
         Ok(out)
     }
 
@@ -291,6 +296,76 @@ impl TileMap_templates {
     #[must_use]
     pub fn size_u32(&self) -> u32 {
         self.size as u32
+    }
+
+    fn fix_tiles_on_artifacts<R: Rng>(&mut self, rng: &mut R, props: &TileMap_props) -> Result<()>{
+        
+        fn needs_a_switch(template: Option<TileTemplate>, prop: PropOption) -> bool {
+            if matches!(prop, PropOption::Some(Prop::Village(_))) {
+                return false;
+            }
+
+            if template.is_some() && prop.has_prop() {
+                let template = template.unwrap();
+                let prop = prop.unwrap().unwrap();
+                if prop.get_template() != template {
+                    // println!("replace {prop:?} {template}");
+                    return true;
+                }
+                else {
+                    // println!("don't replace {prop:?} {template}");
+                    return false;
+                }
+            }
+            else if !prop.has_prop() {
+                return false;
+            }
+            else {
+                panic!("prop on empty tile, {prop:?}")
+            }
+        }
+
+        fn first_tile_of_template(template_map: &TileMap_templates, tiles: &mut Vec<Hex>, template: TileTemplate) -> Result<Hex> {
+            for (i, hex) in tiles.iter().enumerate() {
+                if template_map[*hex].is_some() && template_map[*hex].unwrap() == template {
+                    let hex = *hex;
+                    tiles.remove(i);
+                    return Ok(hex);
+                }
+            }
+            Err(format!("did not find template {template:?}"))
+        }
+
+        let mut tiles_no_artifacts: Vec<Hex> = props
+        .iter()
+        .filter_map(|(h, p)| 
+            if let PropOption::NotAllowed = p {
+                Some(h)
+            } 
+            else {
+                None
+            }
+        )
+        .collect();
+        let mut free_tiles = Vec::new(); // tiles we got from removing tiles under artifacts
+        let mut removed_tiles = Vec::new(); // tiles from where we removed tiles
+
+        for ((hex, template), (_, prop)) in Iterator::zip(self.clone().iter(), props.iter()) {
+            if needs_a_switch(*template, *prop) {
+                let target_template = prop.unwrap().unwrap().get_template(); // what prop wants
+                let removed_hex = first_tile_of_template(&self, &mut tiles_no_artifacts, target_template)?;
+                self[hex] = Some(target_template);
+                free_tiles.push(template.unwrap());
+                removed_tiles.push(removed_hex);
+            }
+        };
+
+        free_tiles.shuffle(rng);
+        for hex in removed_tiles {
+            self[hex] = free_tiles.pop();
+        }
+
+        Ok(())
     }
 
     fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = TileTemplate> {
