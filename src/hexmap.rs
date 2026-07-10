@@ -20,7 +20,7 @@ const VILLAGE_COUNT: u8 = 10;
 
 const MIN_PROP_DISTANCE: u32 = 2;
 const ARTIFACT_COUNT_BIG: usize = 15;
-const ARTIFACT_COUNT_SMALL: usize = 10;
+const ARTIFACT_COUNT_SMALL: usize = 10; // 10
 const ARTIFACT_COUNT_PER_ART_BIG: usize = 3;
 const ARTIFACT_COUNT_PER_ART_SMALL: usize = 2;
 

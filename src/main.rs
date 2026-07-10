@@ -31,7 +31,7 @@ fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<(TileMap_shape, TileMap
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let size = MapSize::Small;
+    let size = MapSize::Big;
 
     let mut rng = rng();
     let mut image_shape: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
