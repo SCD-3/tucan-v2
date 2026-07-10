@@ -26,18 +26,26 @@ pub fn get_hex_points(center: Vec2, radius: f32) -> Vec<Point<i32>> {
         .collect()
 }
 
-pub trait DrawHexMap {
+#[must_use]
+pub fn get_pos(pos: Hex, image_config: ImageConfig) -> Vec2 {
+    let layout = HexLayout { 
+        origin: image_config.hexmap_offset, 
+        orientation: HexOrientation::Pointy,
+        scale: Vec2::splat(image_config.hex_radius) };
+    layout.hex_to_world_pos(pos)
+}
+
+pub trait DrawHexMap<T>: Sized {
 
     type ColorSpace;
 
-    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig);
-
-    #[must_use]
-    fn get_pos(pos: Hex, image_config: ImageConfig) -> Vec2 {
-        let layout = HexLayout { 
-            origin: image_config.hexmap_offset, 
-            orientation: HexOrientation::Pointy,
-            scale: Vec2::splat(image_config.hex_radius) };
-        layout.hex_to_world_pos(pos)
+    fn draw<C: Canvas<Pixel = Self::ColorSpace>, S: Iterator<Item = (Hex, T)>>(&self, self_iter: S, img: &mut C, image_config: ImageConfig) {
+        for (hex, element) in self_iter {
+            self.draw_element(img, hex, element, image_config);
+        }
     }
+
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: T, image_config: ImageConfig);
+
+
 }

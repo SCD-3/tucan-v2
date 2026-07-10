@@ -53,13 +53,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     
     
-    shape.draw(&mut image_shape, image_config);
+    shape.draw(shape.iter(), &mut image_shape, image_config);
     image_shape.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_shape.png")?;
 
-    props.draw(&mut image_props, image_config);
+    props.draw(props.iter(), &mut image_props, image_config);
     image_props.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_props.png")?;
 
-    templates.draw(&mut image_templates, image_config);
+    templates.draw(templates.iter(), &mut image_templates, image_config);
     image_templates.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_templates.png")?;
 
     Ok(())

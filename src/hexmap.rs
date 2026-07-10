@@ -249,16 +249,15 @@ impl Get<Hex> for TileMap_shape {
         self.map.get(index)
     }
 }
-impl DrawHexMap for TileMap_shape {
+
+impl DrawHexMap<&bool> for TileMap_shape {
     type ColorSpace = Rgb<u8>;
 
-    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig) {
-        for (hex, state) in self.iter() {
-            let pos = Self::get_pos(hex, image_config);
-            let points = get_hex_points(pos, image_config.hex_radius);
-            if *state {
-                draw_polygon_mut(img, &points, if hex == Hex::ZERO {Rgb([255, 0, 0])} else {Rgb([255, 255, 255])})
-            }
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &bool, image_config: ImageConfig) {
+        let pos = get_pos(hex, image_config);
+        let points = get_hex_points(pos, image_config.hex_radius);
+        if *value {
+            draw_polygon_mut(img, &points, if hex == Hex::ZERO {Rgb([255, 0, 0])} else {Rgb([255, 255, 255])})
         }
     }
 }
@@ -312,20 +311,20 @@ impl TileMap_templates {
                 return false;
             }
 
-            if template.is_some() && prop.has_prop() {
-                let template = template.unwrap();
+            if let Some(template) = template && prop.has_prop() {
+                // let template = template.unwrap();
                 let prop = prop.unwrap().unwrap();
                 if prop.get_template() != template {
                     // println!("replace {prop:?} {template}");
-                    return true;
+                    true
                 }
                 else {
                     // println!("don't replace {prop:?} {template}");
-                    return false;
+                    false
                 }
             }
             else if !prop.has_prop() {
-                return false;
+                false
             }
             else {
                 panic!("prop on empty tile, {prop:?}")
@@ -360,7 +359,7 @@ impl TileMap_templates {
         for ((hex, template), (_, prop)) in Iterator::zip(self.clone().iter(), props.iter()) {
             if needs_a_switch(*template, *prop) {
                 let target_template = prop.unwrap().unwrap().get_template(); // what prop wants
-                let removed_hex = first_tile_of_template(&self, &mut tiles_no_artifacts, target_template)?;
+                let removed_hex = first_tile_of_template(self, &mut tiles_no_artifacts, target_template)?;
                 self[hex] = Some(target_template);
                 free_tiles.push(template.unwrap());
                 removed_tiles.push(removed_hex);
@@ -401,15 +400,14 @@ impl Get<Hex> for TileMap_templates {
         self.map.get(index)
     }
 }
-impl DrawHexMap for TileMap_templates {
+
+impl DrawHexMap<&Option<TileTemplate>> for TileMap_templates {
     type ColorSpace = Rgb<u8>;
 
-    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig) {
-        for (hex, state) in self.iter() {
-            let pos = Self::get_pos(hex, image_config);
-            let points = get_hex_points(pos, image_config.hex_radius);
-            if let Some(template) = state { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgb!(255, 0, 0)} else {template.color()}) }
-        }
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Option<TileTemplate>, image_config: ImageConfig) {
+        let pos = get_pos(hex, image_config);
+        let points = get_hex_points(pos, image_config.hex_radius);
+        if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgb!(255, 0, 0)} else {template.color()}) }
     }
 }
 
@@ -565,32 +563,30 @@ impl Get<Hex> for TileMap_props {
         self.map.get(index)
     }
 }
-impl DrawHexMap for TileMap_props {
+impl DrawHexMap<&PropOption> for TileMap_props {
     type ColorSpace = Rgb<u8>;
 
-    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(self, img: &mut C, image_config: ImageConfig) {
-        for (hex, state) in self.iter() {
-            let pos = Self::get_pos(hex, image_config);
-            let points = get_hex_points(pos, image_config.hex_radius);
-            let color = if false {
-                // hex == Hex::ZERO
-                rgb!(255, 0, 0)
-            }
-            else {
-                match state {
-                    PropOption::Some(Prop::Village(_))  => rgb!(255, 0  , 255),
-                    PropOption::Some(Prop::Monolith)    => rgb!(50 , 50 , 50 ),
-                    PropOption::Some(Prop::Book)        => rgb!(100, 50 , 0  ),
-                    PropOption::Some(Prop::Bird)        => rgb!(0  , 200, 0  ),
-                    PropOption::Some(Prop::WeirdMonkey) => rgb!(100, 0  , 100),
-                    PropOption::Some(Prop::Dragon)      => rgb!(50 , 255, 255),
-
-                    PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}"),
-                    PropOption::NotAllowed => rgb!(0, 0, 0)
-                }
-            };
-            draw_polygon_mut(img, &points, color)
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &PropOption, image_config: ImageConfig) {
+        let pos = get_pos(hex, image_config);
+        let points = get_hex_points(pos, image_config.hex_radius);
+        let color = if false {
+            // hex == Hex::ZERO
+            rgb!(255, 0, 0)
         }
+        else {
+            match value {
+                PropOption::Some(Prop::Village(_))  => rgb!(255, 0  , 255),
+                PropOption::Some(Prop::Monolith)    => rgb!(50 , 50 , 50 ),
+                PropOption::Some(Prop::Book)        => rgb!(100, 50 , 0  ),
+                PropOption::Some(Prop::Bird)        => rgb!(0  , 200, 0  ),
+                PropOption::Some(Prop::WeirdMonkey) => rgb!(100, 0  , 100),
+                PropOption::Some(Prop::Dragon)      => rgb!(50 , 255, 255),
+
+                PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}"),
+                PropOption::NotAllowed => rgb!(0, 0, 0)
+            }
+        };
+        draw_polygon_mut(img, &points, color)
     }
 }
 
