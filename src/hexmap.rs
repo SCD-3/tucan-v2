@@ -8,7 +8,7 @@ use crate::{drawing::*, tiles::*};
 type Result<T> = core::result::Result<T, String>;
 
 pub const BIG_MAP_SIZE:   u8 = 104;
-pub const SMALL_MAP_SIZE: u8 = 73;
+pub const SMALL_MAP_SIZE: u8 =  73;
 
 const HEXMAP_RADIUS_BIG:   u32 = 6;
 const HEXMAP_RADIUS_SMALL: u32 = 5;
@@ -19,10 +19,11 @@ const VILLAGE_COUNT: u8 = 10;
 // const VILLAGE_OFFSET: u8 = 3;
 
 const MIN_PROP_DISTANCE: u32 = 2;
-const ARTIFACT_COUNT_BIG: usize = 15;
-const ARTIFACT_COUNT_SMALL: usize = 10; // 10
-const ARTIFACT_COUNT_PER_ART_BIG: usize = 3;
-const ARTIFACT_COUNT_PER_ART_SMALL: usize = 2;
+
+const ARTIFACT_COUNT_BIG:           usize = 15;
+const ARTIFACT_COUNT_SMALL:         usize = 10; // 10
+const ARTIFACT_COUNT_PER_ART_BIG:   usize =  3;
+const ARTIFACT_COUNT_PER_ART_SMALL: usize =  2;
 
 /// Matching for pattern `Option<T>::Some(a)|Option<T>::None`.
 /// 
