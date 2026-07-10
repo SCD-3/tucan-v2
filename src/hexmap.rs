@@ -104,12 +104,6 @@ impl TileMap_rawShapeGen {
         self.map.iter()
     }
 
-    #[inline(always)]
-    #[must_use]
-    pub fn size_u32(&self) -> u32 {
-        self.size as u32
-    }
-
     fn do_a_run<R: Rng>(&mut self, rng: &mut R, overule_min_neighbors: bool) {
         // println!("{}", self.iter().filter(|(_, state)| matches!(state, RawTileState::FreeToTake)).collect::<Vec<_>>().len());
 
@@ -191,12 +185,6 @@ impl TileMap_shape {
     #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &bool)> {
         self.map.iter()
-    }
-
-    #[inline(always)]
-    #[must_use]
-    pub fn size_u32(&self) -> u32 {
-        self.size as u32
     }
 
     #[must_use]
@@ -296,12 +284,6 @@ impl TileMap_templates {
     #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<TileTemplate>)> {
         self.map.iter()
-    }
-
-    #[inline(always)]
-    #[must_use]
-    pub fn size_u32(&self) -> u32 {
-        self.size as u32
     }
 
     fn fix_tiles_on_artifacts<R: Rng>(&mut self, rng: &mut R, props: &TileMap_props) -> Result<()>{
@@ -540,12 +522,6 @@ impl TileMap_props {
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &PropOption)> {
         self.map.iter()
     }
-
-    #[inline(always)]
-    #[must_use]
-    pub fn size_u32(&self) -> u32 {
-        self.size as u32
-    }
 }
 impl Index<Hex> for TileMap_props {
     type Output = PropOption;
@@ -623,12 +599,6 @@ impl TileMap {
     pub fn iter(&self) -> impl Iterator<Item = (Hex, &Tile)> {
         self.map.iter()
     }
-
-    #[inline(always)]
-    #[must_use]
-    pub fn size_u32(&self) -> u32 {
-        self.size as u32
-    }
 }
 
 impl Index<Hex> for TileMap {
@@ -648,6 +618,13 @@ impl Get<Hex> for TileMap {
     }
 }
 
+impl DrawHexMap<&Tile> for TileMap {
+    type ColorSpace = Rgb<u8>;
+
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
+        todo!()
+    }
+}
 trait Get<Idx: ?Sized>: Index<Idx> {
     #[must_use]
     fn get(&self, index: Idx) -> Option<&Self::Output>;

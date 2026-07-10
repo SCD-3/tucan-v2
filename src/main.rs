@@ -34,9 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let size = MapSize::Big;
 
     let mut rng = rng();
-    let mut image_shape: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
-    let mut image_props: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
-    let mut image_templates: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(WIDTH, HEIGHT);
+    let mut image = ImageBuffer::new(WIDTH, HEIGHT);
     let image_config = ImageConfig { 
         height: HEIGHT, 
         width: WIDTH, 
@@ -45,22 +43,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     
     let mut error_counter = 0;
-    let (shape, templates, props) = loop {
+    let (_, templates, props) = loop {
         if error_counter > ERROR_TIMEOUT_LIMIT {panic!("timeout during generation")}
         let res= try_gen(&mut rng, size);
         if let Ok(value) = res {break value} 
         else {error_counter += 1; println!("{}", res.err().unwrap())}
     };
     
-    
-    shape.draw(shape.iter(), &mut image_shape, image_config);
-    image_shape.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_shape.png")?;
-
-    props.draw(props.iter(), &mut image_props, image_config);
-    image_props.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_props.png")?;
-
-    templates.draw(templates.iter(), &mut image_templates, image_config);
-    image_templates.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_templates.png")?;
+    let map = TileMap::new(templates, props)?;
+    map.draw(map.iter(), &mut image, image_config);
+    image.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_templates.png")?;
 
     Ok(())
 }
