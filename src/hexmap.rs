@@ -48,6 +48,7 @@ macro_rules! rgb {
 /// Second is if big
 /// 
 /// Third is if small
+#[macro_export]
 macro_rules! match_size {
     ($name:expr, $big:expr, $small:expr) => {
         match $name {
@@ -81,7 +82,11 @@ pub struct TileMap_rawShapeGen {
 impl TileMap_rawShapeGen {
     
     pub fn new<R: Rng>(size: MapSize, rng: &mut R) -> Result<Self> {
-        let mut map = HexagonalMap::new(Hex::ZERO, match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), |_| RawTileState::Unknown);
+        let mut map = HexagonalMap::new(
+            Hex::ZERO, 
+            match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL), 
+            |_| RawTileState::Unknown);
+        
         map[Hex::ZERO] = RawTileState::FreeToTake;
 
         let mut map = Self { map, size };
@@ -89,6 +94,7 @@ impl TileMap_rawShapeGen {
         for i in 0..size as u8 {
             map.do_a_run(rng, i < MIN_HEX_NEIGHBORS);
         };
+        // println!("{:?} {}", size, match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL));
         Ok(map)
     }
 
@@ -401,7 +407,7 @@ impl DrawHexMap for TileMap_templates {
         for (hex, state) in self.iter() {
             let pos = Self::get_pos(hex, image_config);
             let points = get_hex_points(pos, image_config.hex_radius);
-            if let Some(template) = state { draw_polygon_mut(img, &points, if hex == Hex::ZERO {Rgb([255, 0, 0])} else {template.color()}) }
+            if let Some(template) = state { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgb!(255, 0, 0)} else {template.color()}) }
         }
     }
 }
@@ -495,8 +501,8 @@ impl TileMap_props {
             }
             match ring.next() {
                 Some(hex) => {if 
-                        *shape.get(hex).ok_or(format!("ring index out of bounds. Hex {hex:?}"))? && 
-                        !self.get(hex).ok_or(format!("ring index out of bounds. Hex {hex:?}"))?.is_allowed() 
+                        *shape.get(hex).ok_or(format!("ring index out of bounds. Hex: {hex:?} ring size: {ring_distance}"))? && 
+                        !self.get(hex).ok_or(format!("ring index out of bounds. Hex: {hex:?} ring size: {ring_distance}"))?.is_allowed() 
                         && !hex.all_neighbors().iter()
                             .any(|h| self.get(*h).unwrap_or(&PropOption::NotAllowed).has_prop()) 
                     {
