@@ -34,10 +34,7 @@ macro_rules! empty {
     };
 }
 
-/// RGB colors.
-///
-/// For the purpose of color conversion, as well as blending, the implementation of `Pixel`
-/// assumes an `sRGB` color space of its data.
+/// RGB colors + alpha channel
 macro_rules! rgba {
     ($r:expr, $g:expr, $b:expr, $a:expr) => {
         Rgba::<u8>([$r, $g, $b, $a])
