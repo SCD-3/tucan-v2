@@ -66,8 +66,7 @@ pub enum MapSize {
     Big   = BIG_MAP_SIZE
 }
 
-#[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum RawTileState {
     FreeToTake,
     Taken,
@@ -97,11 +96,6 @@ impl TileMap_rawShapeGen {
         };
         // println!("{:?} {}", size, match_size!(size, HEXMAP_RADIUS_BIG, HEXMAP_RADIUS_SMALL));
         Ok(map)
-    }
-
-    #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &RawTileState)> {
-        self.map.iter()
     }
 
     fn do_a_run<R: Rng>(&mut self, rng: &mut R, overule_min_neighbors: bool) {
@@ -143,10 +137,44 @@ impl IndexMut<Hex> for TileMap_rawShapeGen {
         &mut self.map[index]
     }
 }
-impl Get<Hex> for TileMap_rawShapeGen {
-    fn get(&self, index: Hex) -> Option<&Self::Output> {
-        self.map.get(index)
+impl HexStore<RawTileState> for TileMap_rawShapeGen {
+    
+    fn get(&self, hex: hexx::Hex) -> Option<&RawTileState> {
+        self.map.get(hex)
     }
+
+    fn get_mut(&mut self, hex: hexx::Hex) -> Option<&mut RawTileState> {
+        self.map.get_mut(hex)
+    }
+
+    fn iter<'s>(&'s self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s RawTileState)>
+    where
+        RawTileState: 's
+    {
+        self.map.iter()
+    }
+
+    fn iter_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s mut RawTileState)>
+    where
+        RawTileState: 's
+    {
+        self.map.iter_mut()
+    }
+
+    fn values<'s>(&'s self) -> impl ExactSizeIterator<Item = &'s RawTileState>
+    where
+        RawTileState: 's
+    {
+        self.map.values()
+    }
+
+    fn values_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = &'s mut RawTileState>
+    where
+        RawTileState: 's
+    {
+        self.map.values_mut()
+    }
+
 }
 
 
@@ -179,12 +207,6 @@ impl TileMap_shape {
             
         }
         true
-    }
-
-
-    #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &bool)> {
-        self.map.iter()
     }
 
     #[must_use]
@@ -232,13 +254,47 @@ impl IndexMut<Hex> for TileMap_shape {
         &mut self.map[index]
     }
 }
-impl Get<Hex> for TileMap_shape {
-    fn get(&self, index: Hex) -> Option<&Self::Output> {
-        self.map.get(index)
+impl HexStore<bool> for TileMap_shape {
+    
+    fn get(&self, hex: hexx::Hex) -> Option<&bool> {
+        self.map.get(hex)
     }
+
+    fn get_mut(&mut self, hex: hexx::Hex) -> Option<&mut bool> {
+        self.map.get_mut(hex)
+    }
+
+    fn iter<'s>(&'s self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s bool)>
+    where
+        bool: 's
+    {
+        self.map.iter()
+    }
+
+    fn iter_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s mut bool)>
+    where
+        bool: 's
+    {
+        self.map.iter_mut()
+    }
+
+    fn values<'s>(&'s self) -> impl ExactSizeIterator<Item = &'s bool>
+    where
+        bool: 's
+    {
+        self.map.values()
+    }
+
+    fn values_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = &'s mut bool>
+    where
+        bool: 's
+    {
+        self.map.values_mut()
+    }
+
 }
 
-impl DrawHexMap<&bool> for TileMap_shape {
+impl DrawHexMap<bool> for TileMap_shape {
     type ColorSpace = Rgb<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &bool, image_config: ImageConfig) {
@@ -279,11 +335,6 @@ impl TileMap_templates {
 
         out.fix_tiles_on_artifacts(rng, props)?;
         Ok(out)
-    }
-
-    #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &Option<TileTemplate>)> {
-        self.map.iter()
     }
 
     fn fix_tiles_on_artifacts<R: Rng>(&mut self, rng: &mut R, props: &TileMap_props) -> Result<()>{
@@ -377,13 +428,47 @@ impl IndexMut<Hex> for TileMap_templates {
         &mut self.map[index]
     }
 }
-impl Get<Hex> for TileMap_templates {
-    fn get(&self, index: Hex) -> Option<&Self::Output> {
-        self.map.get(index)
+impl HexStore<Option<TileTemplate>> for TileMap_templates {
+
+    fn get(&self, hex: hexx::Hex) -> Option<&Option<TileTemplate>> {
+        self.map.get(hex)
     }
+
+    fn get_mut(&mut self, hex: hexx::Hex) -> Option<&mut Option<TileTemplate>> {
+        self.map.get_mut(hex)
+    }
+
+    fn iter<'s>(&'s self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s Option<TileTemplate>)>
+    where
+        Option<TileTemplate>: 's
+    {
+        self.map.iter()
+    }
+
+    fn iter_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s mut Option<TileTemplate>)>
+    where
+        Option<TileTemplate>: 's
+    {
+        self.map.iter_mut()
+    }
+
+    fn values<'s>(&'s self) -> impl ExactSizeIterator<Item = &'s Option<TileTemplate>>
+    where
+        Option<TileTemplate>: 's
+    {
+        self.map.values()
+    }
+
+    fn values_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = &'s mut Option<TileTemplate>>
+    where
+        Option<TileTemplate>: 's
+    {
+        self.map.values_mut()
+    }
+    
 }
 
-impl DrawHexMap<&Option<TileTemplate>> for TileMap_templates {
+impl DrawHexMap<Option<TileTemplate>> for TileMap_templates {
     type ColorSpace = Rgb<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Option<TileTemplate>, image_config: ImageConfig) {
@@ -518,10 +603,6 @@ impl TileMap_props {
         out.into_iter()
     }
 
-    #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &PropOption)> {
-        self.map.iter()
-    }
 }
 impl Index<Hex> for TileMap_props {
     type Output = PropOption;
@@ -534,12 +615,47 @@ impl IndexMut<Hex> for TileMap_props {
         &mut self.map[index]
     }
 }
-impl Get<Hex> for TileMap_props {
-    fn get(&self, index: Hex) -> Option<&Self::Output> {
-        self.map.get(index)
+impl HexStore<PropOption> for TileMap_props {
+    
+    fn get(&self, hex: hexx::Hex) -> Option<&PropOption> {
+        self.map.get(hex)
     }
+
+    fn get_mut(&mut self, hex: hexx::Hex) -> Option<&mut PropOption> {
+        self.map.get_mut(hex)
+    }
+
+    fn iter<'s>(&'s self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s PropOption)>
+    where
+        Tile: 's
+    {
+        self.map.iter()
+    }
+
+    fn iter_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s mut PropOption)>
+    where
+        Tile: 's
+    {
+        self.map.iter_mut()
+    }
+
+    fn values<'s>(&'s self) -> impl ExactSizeIterator<Item = &'s PropOption>
+    where
+        Tile: 's
+    {
+        self.map.values()
+    }
+
+    fn values_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = &'s mut PropOption>
+    where
+        Tile: 's
+    {
+        self.map.values_mut()
+    }
+    
 }
-impl DrawHexMap<&PropOption> for TileMap_props {
+
+impl DrawHexMap<PropOption> for TileMap_props {
     type ColorSpace = Rgb<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &PropOption, image_config: ImageConfig) {
@@ -612,20 +728,50 @@ impl IndexMut<Hex> for TileMap {
         &mut self.map[index]
     }
 }
-impl Get<Hex> for TileMap {
-    fn get(&self, index: Hex) -> Option<&Self::Output> {
-        self.map.get(index)
+impl HexStore<Tile> for TileMap {
+    
+    fn get(&self, hex: hexx::Hex) -> Option<&Tile> {
+        self.map.get(hex)
     }
+
+    fn get_mut(&mut self, hex: hexx::Hex) -> Option<&mut Tile> {
+        self.map.get_mut(hex)
+    }
+
+    fn iter<'s>(&'s self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s Tile)>
+    where
+        Tile: 's
+    {
+        self.map.iter()
+    }
+
+    fn iter_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = (hexx::Hex, &'s mut Tile)>
+    where
+        Tile: 's
+    {
+        self.map.iter_mut()
+    }
+
+    fn values<'s>(&'s self) -> impl ExactSizeIterator<Item = &'s Tile>
+    where
+        Tile: 's
+    {
+        self.map.values()
+    }
+
+    fn values_mut<'s>(&'s mut self) -> impl ExactSizeIterator<Item = &'s mut Tile>
+    where
+        Tile: 's
+    {
+        self.map.values_mut()
+    }
+    
 }
 
-impl DrawHexMap<&Tile> for TileMap {
+impl DrawHexMap<Tile> for TileMap {
     type ColorSpace = Rgb<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
         todo!()
     }
-}
-trait Get<Idx: ?Sized>: Index<Idx> {
-    #[must_use]
-    fn get(&self, index: Idx) -> Option<&Self::Output>;
 }

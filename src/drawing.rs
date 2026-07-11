@@ -1,6 +1,6 @@
 use imageproc::point::Point;
 use std::f32::consts::PI;
-use hexx::{layout::HexLayout, Vec2, orientation::HexOrientation};
+use hexx::{layout::HexLayout, orientation::HexOrientation, Vec2, storage::HexStore};
 use hexx::Hex;
 use imageproc::drawing::Canvas;
 
@@ -35,17 +35,17 @@ pub fn get_pos(pos: Hex, image_config: ImageConfig) -> Vec2 {
     layout.hex_to_world_pos(pos)
 }
 
-pub trait DrawHexMap<T>: Sized {
+pub trait DrawHexMap<T>: Sized + HexStore<T> {
 
     type ColorSpace;
 
-    fn draw<C: Canvas<Pixel = Self::ColorSpace>, S: Iterator<Item = (Hex, T)>>(&self, self_iter: S, img: &mut C, image_config: ImageConfig) {
-        for (hex, element) in self_iter {
+    fn draw<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, image_config: ImageConfig) {
+        for (hex, element) in self.iter() {
             self.draw_element(img, hex, element, image_config);
         }
     }
 
-    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: T, image_config: ImageConfig);
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &T, image_config: ImageConfig);
 
 
 }
