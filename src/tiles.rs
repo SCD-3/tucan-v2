@@ -138,7 +138,7 @@ pub enum Prop {
     Dragon
 }
 impl Prop {
-    
+
     pub fn get_template(self) -> TileTemplate {
         for tempalte in TEMPLATES {
             if tempalte.primary_art == self || tempalte.secondary_art == Some(self) {
@@ -147,6 +147,20 @@ impl Prop {
         }
         panic!("did not find template for prop {self:?}")
     }
+}
+
+#[macro_export]
+macro_rules! get_prop_color {
+    ($prop:expr) => {
+        match $prop {
+            Prop::Village(_)  => rgba!(255, 0  , 255),
+            Prop::Monolith    => rgba!(50 , 50 , 50 ),
+            Prop::Book        => rgba!(100, 50 , 0  ),
+            Prop::Bird        => rgba!(0  , 200, 0  ),
+            Prop::WeirdMonkey => rgba!(100, 0  , 100),
+            Prop::Dragon      => rgba!(50 , 255, 255),
+        }
+    };
 }
 
 pub const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];

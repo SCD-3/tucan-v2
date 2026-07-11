@@ -8,7 +8,7 @@ use imageproc::drawing::Canvas;
 pub struct ImageConfig {
     pub width: u32,
     pub height: u32,
-    pub hex_radius: f32,
+    pub radius: f32,
 
     pub hexmap_offset: Vec2
 }
@@ -31,7 +31,7 @@ pub fn get_pos(pos: Hex, image_config: ImageConfig) -> Vec2 {
     let layout = HexLayout { 
         origin: image_config.hexmap_offset, 
         orientation: HexOrientation::Pointy,
-        scale: Vec2::splat(image_config.hex_radius) };
+        scale: Vec2::splat(image_config.radius) };
     layout.hex_to_world_pos(pos)
 }
 

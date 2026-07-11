@@ -1,14 +1,16 @@
 use std::ops::{Index, IndexMut};
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
 use image::Rgba;
-use imageproc::drawing::{Canvas, draw_polygon_mut};
+use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
 
 type Result<T> = core::result::Result<T, String>;
 
-pub const BIG_MAP_SIZE:   u8 = 104;
-pub const SMALL_MAP_SIZE: u8 =  73;
+const PROP_RADIUS_MULTI: f32 = 0.60;
+
+const BIG_MAP_SIZE:   u8 = 104;
+const SMALL_MAP_SIZE: u8 =  73;
 
 const HEXMAP_RADIUS_BIG:   u32 = 6;
 const HEXMAP_RADIUS_SMALL: u32 = 5;
@@ -35,6 +37,7 @@ macro_rules! empty {
 }
 
 /// RGB colors + alpha channel
+#[macro_export]
 macro_rules! rgba {
     ($r:expr, $g:expr, $b:expr, $a:expr) => {
         Rgba::<u8>([$r, $g, $b, $a])
@@ -299,7 +302,7 @@ impl DrawHexMap<bool> for TileMap_shape {
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &bool, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
-        let points = get_hex_points(pos, image_config.hex_radius);
+        let points = get_hex_points(pos, image_config.radius);
         if *value {
             draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0)} else {rgba!(255, 255, 255)})
         }
@@ -473,7 +476,7 @@ impl DrawHexMap<Option<TileTemplate>> for TileMap_templates {
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Option<TileTemplate>, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
-        let points = get_hex_points(pos, image_config.hex_radius);
+        let points = get_hex_points(pos, image_config.radius);
         if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0)} else {template.color()}) }
     }
 }
@@ -656,22 +659,16 @@ impl DrawHexMap<PropOption> for TileMap_props {
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &PropOption, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
-        let points = get_hex_points(pos, image_config.hex_radius);
+        let points = get_hex_points(pos, image_config.radius);
         let color = if false {
             // hex == Hex::ZERO
             rgba!(255, 0, 0)
         }
         else {
             match value {
-                PropOption::Some(Prop::Village(_))  => rgba!(255, 0  , 255, 100),
-                PropOption::Some(Prop::Monolith)    => rgba!(50 , 50 , 50 , 100),
-                PropOption::Some(Prop::Book)        => rgba!(100, 50 , 0  , 100),
-                PropOption::Some(Prop::Bird)        => rgba!(0  , 200, 0  , 100),
-                PropOption::Some(Prop::WeirdMonkey) => rgba!(100, 0  , 100, 100),
-                PropOption::Some(Prop::Dragon)      => rgba!(50 , 255, 255, 100),
-
-                PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}"),
-                PropOption::NotAllowed => rgba!(0, 0, 0, 0)
+                PropOption::Some(prop) => get_prop_color!(prop),
+                PropOption::NotAllowed => rgba!(0, 0, 0, 0),
+                PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}")
             }
         };
         draw_polygon_mut(img, &points, color)
@@ -768,6 +765,16 @@ impl DrawHexMap<Tile> for TileMap {
     type ColorSpace = Rgba<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
-        todo!()
+        let pos = get_pos(hex, image_config);
+        if let Tile { template: Some(template), prop: prop_option } = *value {
+            let points = get_hex_points(pos, image_config.radius);
+            draw_polygon_mut(img, &points, template.color());
+
+            if let PropOption::Some(prop) = prop_option {
+                let prop_color = get_prop_color!(prop);
+
+                draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, prop_color);
+            }
+        }
     }
 }

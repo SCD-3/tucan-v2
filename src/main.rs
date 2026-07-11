@@ -1,3 +1,4 @@
+#[macro_use]
 mod tiles;
 mod hexmap;
 mod drawing;
@@ -8,7 +9,13 @@ use rand::{Rng, rng};
 use image::*;
 
 
-use hexmap::*;
+use hexmap::{
+    TileMap_rawShapeGen, 
+    TileMap_shape, 
+    TileMap_props, 
+    TileMap_templates, 
+    TileMap, 
+    MapSize};
 use crate::drawing::{DrawHexMap, ImageConfig};
 
 const ERROR_TIMEOUT_LIMIT: u8 = 20;
@@ -38,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_config = ImageConfig { 
         height: HEIGHT, 
         width: WIDTH, 
-        hex_radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
+        radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
         hexmap_offset: HEXMAP_OFFSET
     };
     
