@@ -409,7 +409,7 @@ impl TileMap_templates {
 
     fn prepare_random_tiles<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = TileTemplate> {
         let mut out = Vec::new();
-        for template in [SAND, FOREST, MOUNTAIN, WATER] {
+        for template in TEMPLATES {
             out.extend(vec![template; match_size!(map_size, template.amount_big(), template.amount_small())]);
         }
         out.shuffle(rng);
@@ -588,16 +588,12 @@ impl TileMap_props {
     fn prepare_random_props<R: Rng>(rng: &mut R, map_size: MapSize) -> impl Iterator<Item = Prop> {
         let mut out = Vec::new();
         let artifact_count_per_art = match_size!(map_size, ARTIFACT_COUNT_PER_ART_BIG, ARTIFACT_COUNT_PER_ART_SMALL);
-        for prop in [SAND.primary_art(), FOREST.primary_art(), MOUNTAIN.primary_art(), WATER.primary_art()] {
+        for prop in TEMPLATES.iter().map(|a| a.primary_art()) {
             out.extend(vec![prop; artifact_count_per_art]);
         }
-        // for prop in [SAND.secondary_art(), FOREST.secondary_art(), MOUNTAIN.secondary_art(), WATER.secondary_art()] {
-        //     if let Some(item) = prop {out.extend(vec![item; artifact_count_per_art])};
-        // }
-        for item in [SAND.secondary_art(), FOREST.secondary_art(), MOUNTAIN.secondary_art(), WATER.secondary_art()]
-            .into_iter()
-            .flatten() 
-        {out.extend(vec![item; artifact_count_per_art])}
+        for prop in TEMPLATES.iter().map(|a| a.secondary_art()) {
+            if let Some(item) = prop {out.extend(vec![item; artifact_count_per_art])};
+        }
 
         out.shuffle(rng);
         out.into_iter()

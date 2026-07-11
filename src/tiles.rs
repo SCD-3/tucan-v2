@@ -149,7 +149,7 @@ impl Prop {
     }
 }
 
-const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];
+pub const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];
 
 pub const SAND:     TileTemplate = TileTemplate { name: "SAND"    , color: Rgba([203, 189, 147, 255]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
 pub const FOREST:   TileTemplate = TileTemplate { name: "FOREST"  , color: Rgba([46 , 111, 64 , 255]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
