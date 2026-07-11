@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
-use image::Rgb;
+use image::Rgba;
 use imageproc::drawing::{Canvas, draw_polygon_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
@@ -38,9 +38,9 @@ macro_rules! empty {
 ///
 /// For the purpose of color conversion, as well as blending, the implementation of `Pixel`
 /// assumes an `sRGB` color space of its data.
-macro_rules! rgb {
-    ($r:expr, $g:expr, $b:expr) => {
-        Rgb::<u8>([$r, $g, $b])
+macro_rules! rgba {
+    ($r:expr, $g:expr, $b:expr, $a:expr) => {
+        Rgba::<u8>([$r, $g, $b, $a])
     };
 }
 
@@ -295,13 +295,13 @@ impl HexStore<bool> for TileMap_shape {
 }
 
 impl DrawHexMap<bool> for TileMap_shape {
-    type ColorSpace = Rgb<u8>;
+    type ColorSpace = Rgba<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &bool, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
         let points = get_hex_points(pos, image_config.hex_radius);
         if *value {
-            draw_polygon_mut(img, &points, if hex == Hex::ZERO {Rgb([255, 0, 0])} else {Rgb([255, 255, 255])})
+            draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0, 255)} else {rgba!(255, 255, 255, 255)})
         }
     }
 }
@@ -469,12 +469,12 @@ impl HexStore<Option<TileTemplate>> for TileMap_templates {
 }
 
 impl DrawHexMap<Option<TileTemplate>> for TileMap_templates {
-    type ColorSpace = Rgb<u8>;
+    type ColorSpace = Rgba<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Option<TileTemplate>, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
         let points = get_hex_points(pos, image_config.hex_radius);
-        if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgb!(255, 0, 0)} else {template.color()}) }
+        if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0, 255)} else {template.color()}) }
     }
 }
 
@@ -656,26 +656,26 @@ impl HexStore<PropOption> for TileMap_props {
 }
 
 impl DrawHexMap<PropOption> for TileMap_props {
-    type ColorSpace = Rgb<u8>;
+    type ColorSpace = Rgba<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &PropOption, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
         let points = get_hex_points(pos, image_config.hex_radius);
         let color = if false {
             // hex == Hex::ZERO
-            rgb!(255, 0, 0)
+            rgba!(255, 0, 0, 255)
         }
         else {
             match value {
-                PropOption::Some(Prop::Village(_))  => rgb!(255, 0  , 255),
-                PropOption::Some(Prop::Monolith)    => rgb!(50 , 50 , 50 ),
-                PropOption::Some(Prop::Book)        => rgb!(100, 50 , 0  ),
-                PropOption::Some(Prop::Bird)        => rgb!(0  , 200, 0  ),
-                PropOption::Some(Prop::WeirdMonkey) => rgb!(100, 0  , 100),
-                PropOption::Some(Prop::Dragon)      => rgb!(50 , 255, 255),
+                PropOption::Some(Prop::Village(_))  => rgba!(255, 0  , 255, 100),
+                PropOption::Some(Prop::Monolith)    => rgba!(50 , 50 , 50 , 100),
+                PropOption::Some(Prop::Book)        => rgba!(100, 50 , 0  , 100),
+                PropOption::Some(Prop::Bird)        => rgba!(0  , 200, 0  , 100),
+                PropOption::Some(Prop::WeirdMonkey) => rgba!(100, 0  , 100, 100),
+                PropOption::Some(Prop::Dragon)      => rgba!(50 , 255, 255, 100),
 
                 PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}"),
-                PropOption::NotAllowed => rgb!(0, 0, 0)
+                PropOption::NotAllowed => rgba!(0, 0, 0, 0)
             }
         };
         draw_polygon_mut(img, &points, color)
@@ -769,7 +769,7 @@ impl HexStore<Tile> for TileMap {
 }
 
 impl DrawHexMap<Tile> for TileMap {
-    type ColorSpace = Rgb<u8>;
+    type ColorSpace = Rgba<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
         todo!()

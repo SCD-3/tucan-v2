@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let map = TileMap::new(templates, props)?;
     map.draw(&mut image, image_config);
-    image.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image_templates.png")?;
+    image.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image.png")?;
 
     Ok(())
 }

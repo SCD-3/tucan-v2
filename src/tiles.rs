@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use image::Rgb;
+use image::Rgba;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum PropOption {
@@ -60,7 +60,7 @@ impl PropOption {
 pub struct TileTemplate {
     name: &'static str,
 
-    color: Rgb<u8>,
+    color: Rgba<u8>,
     amount_small: usize,
     amount_big: usize,
 
@@ -71,7 +71,7 @@ impl TileTemplate {
 
     #[inline(always)]
     #[must_use]
-    pub const fn color(&self) -> Rgb<u8> {
+    pub const fn color(&self) -> Rgba<u8> {
         self.color
     }
 
@@ -151,7 +151,7 @@ impl Prop {
 
 const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];
 
-pub const SAND:     TileTemplate = TileTemplate { name: "SAND"    , color: Rgb([203, 189, 147]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
-pub const FOREST:   TileTemplate = TileTemplate { name: "FOREST"  , color: Rgb([46 , 111, 64 ]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
-pub const MOUNTAIN: TileTemplate = TileTemplate { name: "MOUNTAIN", color: Rgb([140, 140, 140]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
-pub const WATER:    TileTemplate = TileTemplate { name: "WATER"   , color: Rgb([46 , 108, 216]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };
+pub const SAND:     TileTemplate = TileTemplate { name: "SAND"    , color: Rgba([203, 189, 147, 255]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
+pub const FOREST:   TileTemplate = TileTemplate { name: "FOREST"  , color: Rgba([46 , 111, 64 , 255]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
+pub const MOUNTAIN: TileTemplate = TileTemplate { name: "MOUNTAIN", color: Rgba([140, 140, 140, 255]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
+pub const WATER:    TileTemplate = TileTemplate { name: "WATER"   , color: Rgba([46 , 108, 216, 255]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };
