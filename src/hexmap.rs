@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
-use image::Rgba;
+use image::{Pixel, Rgba};
 use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
@@ -26,6 +26,9 @@ const ARTIFACT_COUNT_BIG:           usize = 15;
 const ARTIFACT_COUNT_SMALL:         usize = 10; // 10
 const ARTIFACT_COUNT_PER_ART_BIG:   usize =  3;
 const ARTIFACT_COUNT_PER_ART_SMALL: usize =  2;
+
+const IMAGE_PROP_OFFSET_X: u32 = 40;
+const IMAGE_PROP_OFFSET_Y: u32 = 35;
 
 /// Matching for pattern `Option<T>::Some(a)|Option<T>::None`.
 /// 
@@ -498,7 +501,8 @@ impl TileMap_props {
                 |_| PropOption::NotAllowed), 
             size: from.size
         };
-        output.place_villages(from)?;
+        // output.place_villages(from)?;
+        //FIXME add this back
         if output.has_invalid_villages() {
             Err("found villages placed too close to each others")?;
         }
@@ -666,7 +670,7 @@ impl DrawHexMap<PropOption> for TileMap_props {
         }
         else {
             match value {
-                PropOption::Some(prop) => get_prop_color!(prop),
+                PropOption::Some(prop) => prop.get_color(),
                 PropOption::NotAllowed => rgba!(0, 0, 0, 0),
                 PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}")
             }
@@ -771,9 +775,17 @@ impl DrawHexMap<Tile> for TileMap {
             draw_polygon_mut(img, &points, template.color());
 
             if let PropOption::Some(prop) = prop_option {
-                let prop_color = get_prop_color!(prop);
-
-                draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, prop_color);
+                // let prop_color = prop.get_color();
+                // draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, prop_color);
+                let prop_image = prop.get_image();
+                for (x, y, pixel) in prop_image.enumerate_pixels() {
+                    if pixel.alpha() > 0 {
+                        img.draw_pixel(
+                            pos.x as u32 + x - IMAGE_PROP_OFFSET_X, 
+                            pos.y as u32 + y - IMAGE_PROP_OFFSET_Y, 
+                            *pixel);
+                    }
+                }
             }
         }
     }

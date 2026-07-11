@@ -1,6 +1,7 @@
 use std::fmt::Display;
+use image::{ImageBuffer, Rgba};
 
-use image::Rgba;
+const IMAGE_PROP_SIZE: u32 = 80;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum PropOption {
@@ -139,6 +140,7 @@ pub enum Prop {
 }
 impl Prop {
 
+    #[must_use]
     pub fn get_template(self) -> TileTemplate {
         for tempalte in TEMPLATES {
             if tempalte.primary_art == self || tempalte.secondary_art == Some(self) {
@@ -147,20 +149,32 @@ impl Prop {
         }
         panic!("did not find template for prop {self:?}")
     }
-}
 
-#[macro_export]
-macro_rules! get_prop_color {
-    ($prop:expr) => {
-        match $prop {
-            Prop::Village(_)  => rgba!(255, 0  , 255),
-            Prop::Monolith    => rgba!(50 , 50 , 50 ),
-            Prop::Book        => rgba!(100, 50 , 0  ),
-            Prop::Bird        => rgba!(0  , 200, 0  ),
-            Prop::WeirdMonkey => rgba!(100, 0  , 100),
-            Prop::Dragon      => rgba!(50 , 255, 255),
-        }
-    };
+    #[must_use]
+    pub fn get_color(self) -> Rgba<u8> {
+            match self {
+                Prop::Village(_)  => Rgba([255, 0  , 255, 255]),
+                Prop::Monolith    => Rgba([50 , 50 , 50 , 255]),
+                Prop::Book        => Rgba([100, 50 , 0  , 255]),
+                Prop::Bird        => Rgba([0  , 200, 0  , 255]),
+                Prop::WeirdMonkey => Rgba([100, 0  , 100, 255]),
+                Prop::Dragon      => Rgba([50 , 255, 255, 255]),
+            }
+    }
+
+    #[must_use]
+    pub fn get_image(self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        let path = match self {
+            Prop::Village(_)  => "",
+            Prop::Monolith    => r"src\img\artifacts\Obelisk.png",
+            Prop::Book        => r"src\img\artifacts\Book.png",
+            Prop::Bird        => r"src\img\artifacts\Bird.png",
+            Prop::WeirdMonkey => r"src\img\artifacts\WeirdMonkey.png",
+            Prop::Dragon      => r"src\img\artifacts\Dragon.png",
+        };
+        let image = image::open(path).expect(format!("failure while loading image for prop {self:?}").as_str()).into_rgba8();
+        image::imageops::resize(&image, IMAGE_PROP_SIZE, IMAGE_PROP_SIZE, image::imageops::FilterType::Nearest,)
+    }
 }
 
 pub const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];

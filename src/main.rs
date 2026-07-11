@@ -15,7 +15,8 @@ use hexmap::{
     TileMap_props, 
     TileMap_templates, 
     TileMap, 
-    MapSize};
+    MapSize
+};
 use crate::drawing::{DrawHexMap, ImageConfig};
 
 const ERROR_TIMEOUT_LIMIT: u8 = 20;
@@ -41,10 +42,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let size = MapSize::Big;
 
     let mut rng = rng();
-    let mut image = ImageBuffer::new(WIDTH, HEIGHT);
+    // let mut image = ImageBuffer::new(WIDTH, HEIGHT);
+    let mut image = image::open(match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png"))?.into_rgba8();
     let image_config = ImageConfig { 
-        height: HEIGHT, 
-        width: WIDTH, 
+        // height: HEIGHT, 
+        // width: WIDTH, 
         radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
         hexmap_offset: HEXMAP_OFFSET
     };
@@ -58,8 +60,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     
     let map = TileMap::new(templates, props)?;
+    // println!("{}", map.iter().filter(|(_, t)| t.taken()).count());
     map.draw(&mut image, image_config);
-    image.save(r"C:\Users\piotr\Documents\code_projects\rust\tucan-v2\image.png")?;
+    image.save(r"image.png")?;
 
     Ok(())
 }
