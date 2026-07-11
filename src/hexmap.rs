@@ -39,6 +39,9 @@ macro_rules! rgba {
     ($r:expr, $g:expr, $b:expr, $a:expr) => {
         Rgba::<u8>([$r, $g, $b, $a])
     };
+    ($r:expr, $g:expr, $b:expr) => {
+        Rgba::<u8>([$r, $g, $b, 255])
+    };
 }
 
 /// First parameter is map_size
@@ -298,7 +301,7 @@ impl DrawHexMap<bool> for TileMap_shape {
         let pos = get_pos(hex, image_config);
         let points = get_hex_points(pos, image_config.hex_radius);
         if *value {
-            draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0, 255)} else {rgba!(255, 255, 255, 255)})
+            draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0)} else {rgba!(255, 255, 255)})
         }
     }
 }
@@ -471,7 +474,7 @@ impl DrawHexMap<Option<TileTemplate>> for TileMap_templates {
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Option<TileTemplate>, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
         let points = get_hex_points(pos, image_config.hex_radius);
-        if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0, 255)} else {template.color()}) }
+        if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0)} else {template.color()}) }
     }
 }
 
@@ -656,7 +659,7 @@ impl DrawHexMap<PropOption> for TileMap_props {
         let points = get_hex_points(pos, image_config.hex_radius);
         let color = if false {
             // hex == Hex::ZERO
-            rgba!(255, 0, 0, 255)
+            rgba!(255, 0, 0)
         }
         else {
             match value {
