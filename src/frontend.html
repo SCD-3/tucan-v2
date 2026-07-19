@@ -194,16 +194,35 @@
         });
 
         printBtn.addEventListener('click', () => {
-            if (!imageEl.src) {
-                return;
-            }
+            const printUrl = `/print-image?ts=${Date.now()}`;
 
-            const printWindow = window.open(imageEl.src, '_blank');
+            const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 return;
             }
+
+            const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Print Image</title>
+<style>
+@page { size: A4; margin: 0; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body { display: flex; align-items: center; justify-content: center; background: #fff; }
+img { max-width: 100%; max-height: 100%; display: block; }
+</style>
+</head>
+<body>
+<img src="${printUrl}" alt="Printable image" />
+</body>
+</html>`;
+
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
             printWindow.addEventListener('load', () => {
-                printWindow.focus();
                 printWindow.print();
             });
         });
