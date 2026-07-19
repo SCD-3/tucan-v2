@@ -42,48 +42,6 @@ fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<(TileMap_shape, TileMap
     Ok((shape, templates, props))
 }
 
-fn render_image<R: Rng>(rng: &mut R, size: MapSize) -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut image = image::open(match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png"))?
-        .into_rgba8();
-
-    let image_config = ImageConfig {
-        height: HEIGHT,
-        width: WIDTH,
-        radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
-        hexmap_offset: HEXMAP_OFFSET,
-    };
-
-    let mut error_counter = 0;
-    let (_, templates, props) = loop {
-        if error_counter > ERROR_TIMEOUT_LIMIT {
-            panic!("timeout during generation");
-        }
-        let res = try_gen(rng, size);
-        if let Ok(value) = res {
-            break value;
-        } else {
-            error_counter += 1;
-            eprintln!("{}", res.err().unwrap());
-        }
-    };
-
-    let map = TileMap::new(templates, props)?;
-    map.draw(&mut image, image_config);
-
-    // Stack 2 copies vertically to create A4 from A5
-    let mut a4_image = image::ImageBuffer::new(WIDTH as u32, (HEIGHT * 2) as u32);
-    for pixel in image.enumerate_pixels() {
-        a4_image.put_pixel(pixel.0, pixel.1, pixel.2.clone());
-        a4_image.put_pixel(pixel.0, pixel.1 + HEIGHT, pixel.2.clone());
-    }
-
-    let mut buf = Vec::new();
-    let mut cursor = Cursor::new(&mut buf);
-    a4_image.write_to(&mut cursor, image::ImageFormat::Png)?;
-
-    Ok(buf)
-}
-
 fn render_display_image<R: Rng>(rng: &mut R, size: MapSize) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut image = image::open(match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png"))?
         .into_rgba8();
@@ -258,6 +216,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let listener = TcpListener::bind("127.0.0.1:5500")?;
+    // notify user and try to open default browser
+    println!("Server running at http://127.0.0.1:5500/");
     if let Err(err) = open_browser("http://127.0.0.1:5500/") {
         eprintln!("Failed to open browser: {}", err);
     }
