@@ -6,8 +6,8 @@ use imageproc::drawing::Canvas;
 
 #[derive(Clone, Copy)]
 pub struct ImageConfig {
-    // pub width: u32,
-    // pub height: u32,
+    pub width: u32,
+    pub height: u32,
     pub radius: f32,
 
     pub hexmap_offset: Vec2

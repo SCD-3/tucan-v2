@@ -165,7 +165,7 @@ impl Prop {
     #[must_use]
     pub fn get_image(self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         let path = match self {
-            Prop::Village(_)  => "",
+            Prop::Village(_)  => panic!("Prop::Village does not have assiociated image"),
             Prop::Monolith    => r"src\img\artifacts\Obelisk.png",
             Prop::Book        => r"src\img\artifacts\Book.png",
             Prop::Bird        => r"src\img\artifacts\Bird.png",

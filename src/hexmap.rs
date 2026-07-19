@@ -1,7 +1,8 @@
 use std::ops::{Index, IndexMut};
 use hexx::{Hex, storage::{HexStore, HexagonalMap}};
 use image::{Pixel, Rgba};
-use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut};
+use ab_glyph::{FontArc, PxScale};
+use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut, draw_text_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
 
@@ -18,7 +19,7 @@ const HEXMAP_RADIUS_SMALL: u32 = 5;
 const MIN_HEX_NEIGHBORS: u8 = 2;
 
 const VILLAGE_COUNT: u8 = 10;
-// const VILLAGE_OFFSET: u8 = 3;
+const VILLAGE_OFFSET: u8 = 3;
 
 const MIN_PROP_DISTANCE: u32 = 2;
 
@@ -29,6 +30,9 @@ const ARTIFACT_COUNT_PER_ART_SMALL: usize =  2;
 
 const IMAGE_PROP_OFFSET_X: u32 = 40;
 const IMAGE_PROP_OFFSET_Y: u32 = 35;
+
+const TEXT_SCALE: f32 = 10.0;
+// const FONT: ??? //TODO
 
 /// Matching for pattern `Option<T>::Some(a)|Option<T>::None`.
 /// 
@@ -501,8 +505,7 @@ impl TileMap_props {
                 |_| PropOption::NotAllowed), 
             size: from.size
         };
-        // output.place_villages(from)?;
-        //FIXME add this back
+        output.place_villages(from)?;
         if output.has_invalid_villages() {
             Err("found villages placed too close to each others")?;
         }
@@ -535,7 +538,7 @@ impl TileMap_props {
         assert_eq!(village_pos.len(), VILLAGE_COUNT as usize, "invalid number of villages. Expected {VILLAGE_COUNT}, got {}.", village_pos.len());
 
         for (id, hex) in village_pos.iter().enumerate() {
-            self[*hex].give_prop(Prop::Village(id as u8 + 1), true);
+            self[*hex].give_prop(Prop::Village((id as u8 + 1 + VILLAGE_OFFSET) % VILLAGE_COUNT), true);
         };
         Ok(())
     }
@@ -663,19 +666,10 @@ impl DrawHexMap<PropOption> for TileMap_props {
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &PropOption, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
-        let points = get_hex_points(pos, image_config.radius);
-        let color = if false {
-            // hex == Hex::ZERO
-            rgba!(255, 0, 0)
+        if let PropOption::Some(prop) = *value {
+            let prop_color = prop.get_color();
+            draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, prop_color);
         }
-        else {
-            match value {
-                PropOption::Some(prop) => prop.get_color(),
-                PropOption::NotAllowed => rgba!(0, 0, 0, 0),
-                PropOption::CanHave => panic!("attempted to draw empty artifact slot at {hex:?}")
-            }
-        };
-        draw_polygon_mut(img, &points, color)
     }
 }
 
@@ -706,11 +700,6 @@ impl TileMap {
                 size: templates.size 
             }
         )
-    }
-
-    #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (Hex, &Tile)> {
-        self.map.iter()
     }
 }
 
@@ -775,15 +764,18 @@ impl DrawHexMap<Tile> for TileMap {
             draw_polygon_mut(img, &points, template.color());
 
             if let PropOption::Some(prop) = prop_option {
-                // let prop_color = prop.get_color();
-                // draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, prop_color);
-                let prop_image = prop.get_image();
-                for (x, y, pixel) in prop_image.enumerate_pixels() {
-                    if pixel.alpha() > 0 {
-                        img.draw_pixel(
-                            pos.x as u32 + x - IMAGE_PROP_OFFSET_X, 
-                            pos.y as u32 + y - IMAGE_PROP_OFFSET_Y, 
-                            *pixel);
+                if matches!(prop, Prop::Village(_)) {
+                    // draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, PxScale::from(TEXT_SCALE), FONT);
+                }
+                else {
+                    let prop_image = prop.get_image();
+                    for (x, y, pixel) in prop_image.enumerate_pixels() {
+                        if pixel.alpha() > 0 {
+                            img.draw_pixel(
+                                pos.x as u32 + x - IMAGE_PROP_OFFSET_X, 
+                                pos.y as u32 + y - IMAGE_PROP_OFFSET_Y, 
+                                *pixel);
+                        }
                     }
                 }
             }

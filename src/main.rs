@@ -45,8 +45,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let mut image = ImageBuffer::new(WIDTH, HEIGHT);
     let mut image = image::open(match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png"))?.into_rgba8();
     let image_config = ImageConfig { 
-        // height: HEIGHT, 
-        // width: WIDTH, 
+        height: HEIGHT, 
+        width: WIDTH, 
         radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
         hexmap_offset: HEXMAP_OFFSET
     };
