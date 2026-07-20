@@ -6,9 +6,10 @@ mod drawing;
 use std::error::Error;
 use std::fs;
 use std::io::{Cursor, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net;
 use std::process::Command;
 use std::sync::Mutex;
+use std::time::Instant;
 
 use hexx::Vec2;
 use rand::{Rng, SeedableRng, rng, rngs::StdRng};
@@ -23,7 +24,7 @@ use hexmap::{
 };
 use crate::drawing::{DrawHexMap, ImageConfig};
 
-const ERROR_TIMEOUT_LIMIT: u8 = 20;
+const GENERATION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
 
 const WIDTH: u32 = 2480;
 const HEIGHT: u32 = 1748;
@@ -33,6 +34,15 @@ const HEX_RADIUS_SMALL: f32 = 70.00;
 
 const HEXMAP_OFFSET: Vec2 = Vec2 { x: 850.0, y: 874.0 };
 
+
+/// Attempts to generate a tile map shape, templates, and props using the provided random number generator and map size.
+/// 
+/// # Arguments
+/// * `rng` - A mutable reference to the random number generator.
+/// * `size` - The size of the tile map.
+/// 
+/// # Returns
+/// A result containing the generated shape, templates, and props, or an error message.
 fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<(TileMap_shape, TileMap_templates, TileMap_props), String> {
     let raw = TileMap_rawShapeGen::new(size, rng)?;
     let shape = TileMap_shape::new(raw)?;
@@ -42,27 +52,31 @@ fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<(TileMap_shape, TileMap
     Ok((shape, templates, props))
 }
 
-fn render_display_image<R: Rng>(rng: &mut R, size: MapSize) -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut image = image::open(match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png"))?
+
+/// Renders the display image based on the provided random number generator and map size.
+/// 
+/// # Arguments
+/// * `rng` - A mutable reference to the random number generator.
+/// * `size` - The size of the tile map.
+/// 
+/// # Returns
+/// A result containing the rendered image as a vector of bytes, or an error message.
+fn render_display_image<R: Rng>(rng: &mut R, size: MapSize, image_config: ImageConfig) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut image = image::open(
+        match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png")
+        )?
         .into_rgba8();
 
-    let image_config = ImageConfig {
-        height: HEIGHT,
-        width: WIDTH,
-        radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
-        hexmap_offset: HEXMAP_OFFSET,
-    };
-
-    let mut error_counter = 0;
+    let start = Instant::now();
     let (_, templates, props) = loop {
-        if error_counter > ERROR_TIMEOUT_LIMIT {
-            panic!("timeout during generation");
+        if start.elapsed() >= GENERATION_TIMEOUT {
+            panic!("generation timed out after {:?}", GENERATION_TIMEOUT);
         }
+
         let res = try_gen(rng, size);
         if let Ok(value) = res {
             break value;
         } else {
-            error_counter += 1;
             eprintln!("{}", res.err().unwrap());
         }
     };
@@ -77,6 +91,13 @@ fn render_display_image<R: Rng>(rng: &mut R, size: MapSize) -> Result<Vec<u8>, B
     Ok(buf)
 }
 
+/// Renders a print image by duplicating the provided image vertically.
+/// 
+/// # Arguments
+/// * `image_bytes` - A slice of bytes representing the original image.
+/// 
+/// # Returns
+/// A result containing the rendered print image as a vector of bytes, or an error message.
 fn render_print_image(image_bytes: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     let image = image::load_from_memory(image_bytes)?.into_rgba8();
 
@@ -93,6 +114,13 @@ fn render_print_image(image_bytes: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     Ok(buf)
 }
 
+/// Parses the seed value from the query string.
+/// 
+/// # Arguments
+/// * `query` - An optional string containing the query parameters.
+/// 
+/// # Returns
+/// An optional u64 representing the parsed seed value.
 fn parse_seed(query: Option<&str>) -> Option<u64> {
     query.and_then(|query| {
         query.split('&').find_map(|pair| {
@@ -111,7 +139,17 @@ fn parse_seed(query: Option<&str>) -> Option<u64> {
     })
 }
 
-fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body: &[u8]) -> std::io::Result<()> {
+/// Writes an HTTP response to the provided TCP stream.
+/// 
+/// # Arguments
+/// * `stream` - A mutable reference to the TCP stream.
+/// * `status` - A string representing the HTTP status code and message.
+/// * `content_type` - A string representing the content type of the response.
+/// * `body` - A slice of bytes representing the response body.
+/// 
+/// # Returns
+/// A result indicating success or failure of the write operation.
+fn write_response(stream: &mut net::TcpStream, status: &str, content_type: &str, body: &[u8]) -> std::io::Result<()> {
     let header = format!(
         "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         status,
@@ -123,26 +161,42 @@ fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body
     Ok(())
 }
 
-fn open_browser(url: &str) -> std::io::Result<()> {
+/// Opens the default web browser with the specified URL.
+/// 
+/// # Arguments
+/// * `url` - A string slice representing the URL to open.
+/// 
+/// # Returns
+/// A result indicating success or failure of the operation.
+fn open_browser(url: std::net::SocketAddr) -> std::io::Result<()> {
     if cfg!(target_os = "windows") {
         Command::new("cmd")
-            .args(["/C", "start", "", url])
+            .args(["/C", "start", "", &url.to_string()])
             .spawn()
             .map(|_| ())
     } else if cfg!(target_os = "macos") {
         Command::new("open")
-            .arg(url)
+            .arg(url.to_string())
             .spawn()
             .map(|_| ())
     } else {
         Command::new("xdg-open")
-            .arg(url)
+            .arg(url.to_string())
             .spawn()
             .map(|_| ())
     }
 }
 
-fn handle_client(mut stream: TcpStream, image_data: &Mutex<Vec<u8>>, frontend_html: &str) -> std::io::Result<()> {
+/// Handles an incoming client connection, processes the HTTP request, and sends the appropriate response.
+/// 
+/// # Arguments
+/// * `stream` - A mutable reference to the TCP stream representing the client connection.
+/// * `image_data` - A reference to a mutex-protected vector of bytes representing the current image data.
+/// * `frontend_html` - A string slice containing the HTML content to serve for the frontend.
+/// 
+/// # Returns
+/// A result indicating success or failure of the operation.
+fn handle_client(mut stream: net::TcpStream, image_data: &Mutex<Vec<u8>>, frontend_html: &str, image_config: ImageConfig) -> std::io::Result<()> {
     let mut buffer = [0; 1024];
     let size = stream.read(&mut buffer)?;
     let request = String::from_utf8_lossy(&buffer[..size]);
@@ -178,7 +232,7 @@ fn handle_client(mut stream: TcpStream, image_data: &Mutex<Vec<u8>>, frontend_ht
             None => StdRng::from_rng(&mut rng()),
         };
 
-        let image_bytes = match render_display_image(&mut rng, MapSize::Big) {
+        let image_bytes = match render_display_image(&mut rng, MapSize::Big, image_config) {
             Ok(bytes) => bytes,
             Err(err) => {
                 eprintln!("Generation failed: {}", err);
@@ -203,29 +257,31 @@ fn handle_client(mut stream: TcpStream, image_data: &Mutex<Vec<u8>>, frontend_ht
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let size = MapSize::Big;
+    let mut rng = rng();
+    let size = MapSize::Big; // temporary hardcodded, small map not working
+    let image_config = ImageConfig {
+        // height: HEIGHT,
+        // width: WIDTH,
+        radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
+        hexmap_offset: HEXMAP_OFFSET,
+    };
     let frontend_html = fs::read_to_string("src/frontend.html")?;
 
-    let image_data = Mutex::new(Vec::<u8>::new());
 
-    let mut rng = rng();
-    let initial_image = render_display_image(&mut rng, size)?;
-    {
-        let mut current_image = image_data.lock().unwrap();
-        *current_image = initial_image;
-    }
+    let initial_image = render_display_image(&mut rng, size, image_config)?;
+    let image_data = Mutex::new(initial_image);
 
-    let listener = TcpListener::bind("127.0.0.1:5500")?;
+    let listener = net::TcpListener::bind("127.0.0.1:0")?;
     // notify user and try to open default browser
-    println!("Server running at http://127.0.0.1:5500/");
-    if let Err(err) = open_browser("http://127.0.0.1:5500/") {
+    println!("Server running at {}", listener.local_addr()?);
+    if let Err(err) = open_browser(listener.local_addr()?) {
         eprintln!("Failed to open browser: {}", err);
     }
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                if let Err(e) = handle_client(stream, &image_data, &frontend_html) {
+                if let Err(e) = handle_client(stream, &image_data, &frontend_html, image_config) {
                     eprintln!("Client error: {}", e);
                 }
             }

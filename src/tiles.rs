@@ -99,12 +99,6 @@ impl TileTemplate {
     pub const fn secondary_art(&self) -> Option<Prop> {
         self.secondary_art
     }
-
-    #[inline(always)]
-    #[must_use]
-    pub const fn name(&self) -> &'static str {
-        self.name
-    }
 }
 
 impl Display for TileTemplate {
@@ -119,14 +113,6 @@ pub struct Tile {
     pub template: Option<TileTemplate>,
     pub prop: PropOption
 
-}
-impl Tile {
-    
-    #[inline(always)]
-    #[must_use]
-    pub fn taken(&self) -> bool {
-        self.template.is_some()
-    }
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -172,7 +158,7 @@ impl Prop {
             Prop::WeirdMonkey => r"src\img\artifacts\WeirdMonkey.png",
             Prop::Dragon      => r"src\img\artifacts\Dragon.png",
         };
-        let image = image::open(path).expect(format!("failure while loading image for prop {self:?}").as_str()).into_rgba8();
+        let image = image::open(path).unwrap_or_else(|_| panic!("failure while loading image for prop {self:?}")).into_rgba8();
         image::imageops::resize(&image, IMAGE_PROP_SIZE, IMAGE_PROP_SIZE, image::imageops::FilterType::Nearest,)
     }
 }

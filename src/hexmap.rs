@@ -601,6 +601,7 @@ impl TileMap_props {
         for prop in TEMPLATES.iter().map(|a| a.primary_art()) {
             out.extend(vec![prop; artifact_count_per_art]);
         }
+        #[allow(clippy::manual_flatten)]
         for prop in TEMPLATES.iter().map(|a| a.secondary_art()) {
             if let Some(item) = prop {out.extend(vec![item; artifact_count_per_art])};
         }
@@ -677,7 +678,7 @@ impl DrawHexMap<PropOption> for TileMap_props {
 
 pub struct TileMap {
     map: HexagonalMap<Tile>,
-    size: MapSize
+    // size: MapSize
 }
 impl TileMap {
 
@@ -697,7 +698,7 @@ impl TileMap {
                         }
                     }
                 ), 
-                size: templates.size 
+                // size: templates.size 
             }
         )
     }
