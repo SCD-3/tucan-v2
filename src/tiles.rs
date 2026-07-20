@@ -1,6 +1,12 @@
 use std::fmt::Display;
 use image::{ImageBuffer, Rgba};
 
+static MONOLITH_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Obelisk.png");
+static BOOK_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Book.png");
+static BIRD_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Bird.png");
+static WEIRD_MONKEY_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/WeirdMonkey.png");
+static DRAGON_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Dragon.png");
+
 const IMAGE_PROP_SIZE: u32 = 80;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -150,16 +156,18 @@ impl Prop {
 
     #[must_use]
     pub fn get_image(self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        let path = match self {
+        let bytes = match self {
             Prop::Village(_)  => panic!("Prop::Village does not have assiociated image"),
-            Prop::Monolith    => r"src\img\artifacts\Obelisk.png",
-            Prop::Book        => r"src\img\artifacts\Book.png",
-            Prop::Bird        => r"src\img\artifacts\Bird.png",
-            Prop::WeirdMonkey => r"src\img\artifacts\WeirdMonkey.png",
-            Prop::Dragon      => r"src\img\artifacts\Dragon.png",
+            Prop::Monolith    => MONOLITH_IMAGE_BYTES,
+            Prop::Book        => BOOK_IMAGE_BYTES,
+            Prop::Bird        => BIRD_IMAGE_BYTES,
+            Prop::WeirdMonkey => WEIRD_MONKEY_IMAGE_BYTES,
+            Prop::Dragon      => DRAGON_IMAGE_BYTES,
         };
-        let image = image::open(path).unwrap_or_else(|_| panic!("failure while loading image for prop {self:?}")).into_rgba8();
-        image::imageops::resize(&image, IMAGE_PROP_SIZE, IMAGE_PROP_SIZE, image::imageops::FilterType::Nearest,)
+        let image = image::load_from_memory(bytes)
+            .unwrap_or_else(|_| panic!("failure while loading image for prop {self:?}"))
+            .into_rgba8();
+        image::imageops::resize(&image, IMAGE_PROP_SIZE, IMAGE_PROP_SIZE, image::imageops::FilterType::Nearest)
     }
 }
 

@@ -12,6 +12,7 @@ use std::sync::Mutex;
 use std::time::Instant;
 
 use hexx::Vec2;
+use image::ImageBuffer;
 use rand::{Rng, SeedableRng, rng, rngs::StdRng};
 
 use hexmap::{
@@ -24,7 +25,10 @@ use hexmap::{
 };
 use crate::drawing::{DrawHexMap, ImageConfig};
 
-static  ADDR_PREFIX: &str = "http://";
+static ADDR_PREFIX: &str = "http://";
+static BACKGROUND_BIG: &[u8] = std::include_bytes!(r"img/background_big.png");
+static BACKGROUND_SMALL: &[u8] = std::include_bytes!(r"img/background_small.png");
+
 
 const GENERATION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
 
@@ -64,8 +68,8 @@ fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<(TileMap_shape, TileMap
 /// # Returns
 /// A result containing the rendered image as a vector of bytes, or an error message.
 fn render_display_image<R: Rng>(rng: &mut R, size: MapSize, image_config: ImageConfig) -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut image = image::open(
-        match_size!(size, r"src\img\background_big.png", r"src\img\background_small.png")
+    let mut image = image::load_from_memory(
+        match_size!(size, BACKGROUND_BIG, BACKGROUND_SMALL)
         )?
         .into_rgba8();
 
@@ -274,8 +278,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_data = Mutex::new(initial_image);
 
     let listener = net::TcpListener::bind("127.0.0.1:0")?;
+
     // notify user and try to open default browser
-    println!("Server running at {}", listener.local_addr()?);
+    println!("Server running at {}", ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string());
     if let Err(err) = open_browser(&(ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string())) {
         eprintln!("Failed to open browser: {}", err);
     }
