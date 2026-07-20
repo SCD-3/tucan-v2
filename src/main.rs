@@ -24,6 +24,8 @@ use hexmap::{
 };
 use crate::drawing::{DrawHexMap, ImageConfig};
 
+static  ADDR_PREFIX: &str = "http://";
+
 const GENERATION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
 
 const WIDTH: u32 = 2480;
@@ -168,20 +170,20 @@ fn write_response(stream: &mut net::TcpStream, status: &str, content_type: &str,
 /// 
 /// # Returns
 /// A result indicating success or failure of the operation.
-fn open_browser(url: std::net::SocketAddr) -> std::io::Result<()> {
+fn open_browser(url: &str) -> std::io::Result<()> {
     if cfg!(target_os = "windows") {
         Command::new("cmd")
-            .args(["/C", "start", "", &url.to_string()])
+            .args(["/C", "start", "", url])
             .spawn()
             .map(|_| ())
     } else if cfg!(target_os = "macos") {
         Command::new("open")
-            .arg(url.to_string())
+            .arg(url)
             .spawn()
             .map(|_| ())
     } else {
         Command::new("xdg-open")
-            .arg(url.to_string())
+            .arg(url)
             .spawn()
             .map(|_| ())
     }
@@ -274,7 +276,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let listener = net::TcpListener::bind("127.0.0.1:0")?;
     // notify user and try to open default browser
     println!("Server running at {}", listener.local_addr()?);
-    if let Err(err) = open_browser(listener.local_addr()?) {
+    if let Err(err) = open_browser(&(ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string())) {
         eprintln!("Failed to open browser: {}", err);
     }
 
