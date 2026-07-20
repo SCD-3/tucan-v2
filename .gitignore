@@ -1,2 +1,5 @@
 /target
 image_*.png
+*.js
+*.map
+script.d.ts
