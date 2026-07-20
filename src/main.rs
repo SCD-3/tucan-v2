@@ -4,7 +4,6 @@ mod hexmap;
 mod drawing;
 
 use std::error::Error;
-use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::net;
 use std::process::Command;
