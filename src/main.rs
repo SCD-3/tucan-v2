@@ -12,7 +12,6 @@ use std::sync::Mutex;
 use std::time::Instant;
 
 use hexx::Vec2;
-use image::ImageBuffer;
 use rand::{Rng, SeedableRng, rng, rngs::StdRng};
 
 use hexmap::{
@@ -26,6 +25,8 @@ use hexmap::{
 use crate::drawing::{DrawHexMap, ImageConfig};
 
 static ADDR_PREFIX: &str = "http://";
+
+static FRONTEND_HTML_BYTES: &[u8] = include_bytes!("frontend.html");
 static BACKGROUND_BIG: &[u8] = std::include_bytes!(r"img/background_big.png");
 static BACKGROUND_SMALL: &[u8] = std::include_bytes!(r"img/background_small.png");
 
@@ -271,7 +272,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
         hexmap_offset: HEXMAP_OFFSET,
     };
-    let frontend_html = fs::read_to_string("src/frontend.html")?;
+    let frontend_html = std::str::from_utf8(FRONTEND_HTML_BYTES)?;
 
 
     let initial_image = render_display_image(&mut rng, size, image_config)?;
