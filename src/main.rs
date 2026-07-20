@@ -233,10 +233,11 @@ fn handle_client(mut stream: net::TcpStream, image_data: &Mutex<Vec<u8>>, fronte
         write_response(&mut stream, "200 OK", "image/png", print_bytes.as_slice())?;
     } else if method == "GET" && path == "/generate" {
         let seed = parse_seed(Some(query));
-        let mut rng = match seed {
-            Some(seed) => StdRng::seed_from_u64(seed),
-            None => StdRng::from_rng(&mut rng()),
+        let seed_value = match seed {
+            Some(seed) => seed,
+            None => rng().next_u64(),
         };
+        let mut rng = StdRng::seed_from_u64(seed_value);
 
         let image_bytes = match render_display_image(&mut rng, MapSize::Big, image_config) {
             Ok(bytes) => bytes,
@@ -247,13 +248,12 @@ fn handle_client(mut stream: net::TcpStream, image_data: &Mutex<Vec<u8>>, fronte
                 return Ok(());
             }
         };
+        *image_data.lock().unwrap() = image_bytes;
 
-        {
-            let mut current_image = image_data.lock().unwrap();
-            *current_image = image_bytes;
-        }
 
-        write_response(&mut stream, "200 OK", "text/plain; charset=utf-8", b"OK")?;
+        let response_body = format!("{seed_value:016X}");
+
+        write_response(&mut stream, "200 OK", "text/plain; charset=utf-8", response_body.as_bytes())?;
     } else {
         let body = b"Not Found";
         write_response(&mut stream, "404 Not Found", "text/plain; charset=utf-8", body)?;
@@ -263,6 +263,13 @@ fn handle_client(mut stream: net::TcpStream, image_data: &Mutex<Vec<u8>>, fronte
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let listener = net::TcpListener::bind("127.0.0.1:0")?;
+    // notify user and try to open default browser
+    println!("Server running at {}", ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string());
+    if let Err(err) = open_browser(&(ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string())) {
+        eprintln!("Failed to open browser: {}", err);
+    }
+
     let mut rng = rng();
     let size = MapSize::Big; // temporary hardcodded, small map not working
     let image_config = ImageConfig {
@@ -271,20 +278,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
         hexmap_offset: HEXMAP_OFFSET,
     };
-    let frontend_html = std::str::from_utf8(FRONTEND_HTML_BYTES)?;
-
-
+    
+    
     let initial_image = render_display_image(&mut rng, size, image_config)?;
     let image_data = Mutex::new(initial_image);
-
-    let listener = net::TcpListener::bind("127.0.0.1:0")?;
-
-    // notify user and try to open default browser
-    println!("Server running at {}", ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string());
-    if let Err(err) = open_browser(&(ADDR_PREFIX.to_string() + &listener.local_addr()?.to_string())) {
-        eprintln!("Failed to open browser: {}", err);
-    }
-
+    
+    
+    let frontend_html = std::str::from_utf8(FRONTEND_HTML_BYTES)?;
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

@@ -17,7 +17,7 @@
 
         #container {
             text-align: center;
-            padding: 24px;
+            padding: 28px 24px 32px;
             background: #fff;
             border: 1px solid #d8d8d8;
             border-radius: 14px;
@@ -68,6 +68,19 @@
             align-items: center;
         }
 
+        .seed-display {
+            margin-top: 14px;
+            font-size: 0.95rem;
+            color: #444;
+            font-family: Consolas, monospace;
+            letter-spacing: 0.08em;
+        }
+
+        .seed-display strong {
+            color: #111;
+            font-weight: 700;
+        }
+
         .controls label {
             display: inline-flex;
             flex-direction: column;
@@ -79,7 +92,7 @@
         .controls input[type="text"] {
             margin-top: 6px;
             padding: 8px 10px;
-            width: 110px;
+            width: 175px;
             border: 1px solid #bbb;
             border-radius: 8px;
             font-size: 1rem;
@@ -116,11 +129,15 @@
             <button id="generate-btn" type="button">GENERATE</button>
             <label>
                 SEED
-                <input id="seed-input" type="text" maxlength="4" pattern="[A-Fa-f0-9]" placeholder="0000"
+                <input id="seed-input" type="text" maxlength="16" pattern="[A-Fa-f0-9]" placeholder="0000000000000000"
                     autocomplete="off" inputmode="latin" />
             </label>
             <button id="download-btn" type="button">DOWNLAND</button>
             <button id="print-btn" type="button">PRINT</button>
+        </div>
+
+        <div id="seed-display" class="seed-display">
+            SEED USED: <strong id="seed-value">—</strong>
         </div>
     </div>
 
@@ -129,6 +146,7 @@
         const imageEl = document.getElementById('main-image');
         const placeholderEl = document.getElementById('image-placeholder');
         const seedInput = document.getElementById('seed-input');
+        const seedValueEl = document.getElementById('seed-value');
         const generateBtn = document.getElementById('generate-btn');
         const downloadBtn = document.getElementById('download-btn');
         const printBtn = document.getElementById('print-btn');
@@ -143,6 +161,36 @@
             imageEl.src = imageUrl();
         }
 
+        function updateSeedDisplay(value) {
+            const normalized = (value || '').trim().toUpperCase();
+            seedValueEl.textContent = normalized || '—';
+        }
+
+        async function getSeed() {
+            const url = `/generate?seed=${encodeURIComponent(seedInput.value)}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+
+                const seedText = await response.text();
+                const usedSeed = seedText && seedText.trim() ? seedText.trim() : seedInput.value;
+                const normalizedSeed = usedSeed.toUpperCase();
+                seedInput.value = normalizedSeed;
+                return normalizedSeed;
+            } catch (error) {
+                console.error(error);
+                const fallbackSeed = seedInput.value.toUpperCase();
+                seedInput.value = fallbackSeed;
+                return fallbackSeed;
+            }
+        }
+
         imageEl.addEventListener('load', () => {
             placeholderEl.style.display = 'none';
             imageEl.style.display = 'block';
@@ -155,29 +203,21 @@
         });
 
         refreshImage();
+        updateSeedDisplay(seedInput.value);
 
         seedInput.addEventListener('input', () => {
-            const allowed = seedInput.value.replace(/[^a-fA-F0-9]/g, '').slice(0, 4);
+            const allowed = seedInput.value.replace(/[^a-fA-F0-9]/g, '').slice(0, 16);
             if (seedInput.value !== allowed) {
                 seedInput.value = allowed;
             }
+            seedInput.value = seedInput.value.toUpperCase();
+            updateSeedDisplay(seedInput.value);
         });
 
-        generateBtn.addEventListener('click', () => {
-            const url = `/generate?seed=${encodeURIComponent(seedInput.value)}`;
-            fetch(url, {
-                method: 'GET'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Request failed: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(() => {
-                    refreshImage();
-                })
-                .catch(console.error);
+        generateBtn.addEventListener('click', async () => {
+            const seed = await getSeed();
+            updateSeedDisplay(seed);
+            refreshImage();
         });
 
         downloadBtn.addEventListener('click', () => {
