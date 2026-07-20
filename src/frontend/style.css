@@ -1,0 +1,110 @@
+    body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        font-family: Arial, sans-serif;
+    }
+
+    #container {
+        text-align: center;
+        padding: 28px 24px 32px;
+        background: #fff;
+        border: 1px solid #d8d8d8;
+        border-radius: 14px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+        max-width: 760px;
+        width: calc(100% - 40px);
+    }
+
+    #image-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 240px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        border: 1px solid #ccc;
+        background: #e8e8e8;
+        overflow: hidden;
+    }
+
+    #main-image {
+        max-width: 100%;
+        height: auto;
+        display: none;
+    }
+
+    #image-placeholder {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 1rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .controls {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .seed-display {
+        margin-top: 14px;
+        font-size: 0.95rem;
+        color: #444;
+        font-family: Consolas, monospace;
+        letter-spacing: 0.08em;
+    }
+
+    .seed-display strong {
+        color: #111;
+        font-weight: 700;
+    }
+
+    .controls label {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 0.95rem;
+        color: #333;
+    }
+
+    .controls input[type="text"] {
+        margin-top: 6px;
+        padding: 8px 10px;
+        width: 175px;
+        border: 1px solid #bbb;
+        border-radius: 8px;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        text-align: center;
+    }
+
+    .controls button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        background: #1976d2;
+        color: #fff;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    .controls button:hover {
+        background: #125ea9;
+    }

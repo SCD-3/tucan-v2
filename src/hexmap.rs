@@ -678,7 +678,7 @@ impl DrawHexMap<PropOption> for TileMap_props {
 
 pub struct TileMap {
     map: HexagonalMap<Tile>,
-    // size: MapSize
+    size: MapSize
 }
 impl TileMap {
 
@@ -698,9 +698,13 @@ impl TileMap {
                         }
                     }
                 ), 
-                // size: templates.size 
+                size: templates.size 
             }
         )
+    }
+
+    pub fn size(&self) -> MapSize {
+        self.size
     }
 }
 

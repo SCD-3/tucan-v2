@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>GUI</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="script.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="image-wrapper">
+            <img id="main-image" alt="Rendered image" src="" />
+            <div id="image-placeholder">Loading image…</div>
+        </div>
+
+        <div class="controls">
+            <button id="generate-btn" type="button">GENERATE</button>
+            <label>
+                SEED
+                <input id="seed-input" type="text" maxlength="16" pattern="[A-Fa-f0-9]" placeholder="0000000000000000"
+                    autocomplete="off" inputmode="latin" />
+            </label>
+            <button id="download-btn" type="button">DOWNLAND</button>
+            <button id="print-btn" type="button">PRINT</button>
+        </div>
+
+        <div id="seed-display" class="seed-display">
+            SEED USED: <strong id="seed-value">—</strong>
+        </div>
+    </div>
+
+</body>
+
+</html>
