@@ -1,11 +1,11 @@
 use std::fmt::Display;
 use image::{ImageBuffer, Rgba};
 
-static MONOLITH_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Obelisk.png");
-static BOOK_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Book.png");
-static BIRD_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Bird.png");
-static WEIRD_MONKEY_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/WeirdMonkey.png");
-static DRAGON_IMAGE_BYTES: &[u8] = include_bytes!("img/artifacts/Dragon.png");
+static MONOLITH_IMAGE:     &[u8] = include_bytes!("img/artifacts/Obelisk.png");
+static BOOK_IMAGE:         &[u8] = include_bytes!("img/artifacts/Book.png");
+static BIRD_IMAGE:         &[u8] = include_bytes!("img/artifacts/Bird.png");
+static WEIRD_MONKEY_IMAGE: &[u8] = include_bytes!("img/artifacts/WeirdMonkey.png");
+static DRAGON_IMAGE:       &[u8] = include_bytes!("img/artifacts/Dragon.png");
 
 const IMAGE_PROP_SIZE: u32 = 80;
 
@@ -158,11 +158,11 @@ impl Prop {
     pub fn get_image(self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         let bytes = match self {
             Prop::Village(_)  => panic!("Prop::Village does not have assiociated image"),
-            Prop::Monolith    => MONOLITH_IMAGE_BYTES,
-            Prop::Book        => BOOK_IMAGE_BYTES,
-            Prop::Bird        => BIRD_IMAGE_BYTES,
-            Prop::WeirdMonkey => WEIRD_MONKEY_IMAGE_BYTES,
-            Prop::Dragon      => DRAGON_IMAGE_BYTES,
+            Prop::Monolith    => MONOLITH_IMAGE,
+            Prop::Book        => BOOK_IMAGE,
+            Prop::Bird        => BIRD_IMAGE,
+            Prop::WeirdMonkey => WEIRD_MONKEY_IMAGE,
+            Prop::Dragon      => DRAGON_IMAGE,
         };
         let image = image::load_from_memory(bytes)
             .unwrap_or_else(|_| panic!("failure while loading image for prop {self:?}"))

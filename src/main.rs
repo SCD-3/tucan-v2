@@ -88,6 +88,7 @@ fn render_display_image<R: Rng>(rng: &mut R, size: MapSize, image_config: ImageC
     };
 
     let map = TileMap::new(templates, props)?;
+    println!("Map generated");
     map.draw(&mut image, image_config);
 
     let mut buf = Vec::new();
@@ -280,8 +281,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     
     
-    let initial_image = render_display_image(&mut rng, size, image_config)?;
-    let image_data = Mutex::new(initial_image);
+    // let initial_image = render_display_image(&mut rng, size, image_config)?;
+    let image_data = Mutex::new(Vec::new());
     
     
     let frontend_html = std::str::from_utf8(FRONTEND_HTML_BYTES)?;

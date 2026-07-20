@@ -162,11 +162,12 @@
         }
 
         function updateSeedDisplay(value) {
+            console.log(value);
             const normalized = (value || '').trim().toUpperCase();
             seedValueEl.textContent = normalized || '—';
         }
 
-        async function getSeed() {
+        async function updateSeed() {
             const url = `/generate?seed=${encodeURIComponent(seedInput.value)}`;
 
             try {
@@ -181,12 +182,10 @@
                 const seedText = await response.text();
                 const usedSeed = seedText && seedText.trim() ? seedText.trim() : seedInput.value;
                 const normalizedSeed = usedSeed.toUpperCase();
-                seedInput.value = normalizedSeed;
                 return normalizedSeed;
             } catch (error) {
                 console.error(error);
                 const fallbackSeed = seedInput.value.toUpperCase();
-                seedInput.value = fallbackSeed;
                 return fallbackSeed;
             }
         }
@@ -202,8 +201,10 @@
             imageEl.style.display = 'none';
         });
 
+        var seed;
+        await updateSeed().then(a => seed = a)
         refreshImage();
-        updateSeedDisplay(seedInput.value);
+        updateSeedDisplay(seed);
 
         seedInput.addEventListener('input', () => {
             const allowed = seedInput.value.replace(/[^a-fA-F0-9]/g, '').slice(0, 16);
@@ -220,14 +221,15 @@
             refreshImage();
         });
 
-        downloadBtn.addEventListener('click', () => {
+        downloadBtn.addEventListener('click', async () => {
             if (!imageEl.src) {
                 return;
             }
 
+            const seed = await getSeed();
             const anchor = document.createElement('a');
             anchor.href = imageEl.src;
-            anchor.download = 'image.png';
+            anchor.download = `tucna_${seed}.png`;
             document.body.appendChild(anchor);
             anchor.click();
             document.body.removeChild(anchor);
