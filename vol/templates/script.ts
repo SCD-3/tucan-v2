@@ -171,3 +171,8 @@ seedInput.addEventListener("input", () => {
 })
 
 renderImage().catch(console.error)
+
+if (Math.random() < 0.001) {
+    // easter egg
+    document.body.style.filter = "invert(1)"
+}
