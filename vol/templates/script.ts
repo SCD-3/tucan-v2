@@ -79,5 +79,8 @@ async function renderImage(): Promise<void> {
 }
 
 generateBtn.addEventListener("click", renderImage)
+seedInput.addEventListener("input", () => {
+    seedInput.value = seedInput.value.replace(/[^A-Fa-f0-9]/g, "");
+});
 
 renderImage().catch(console.error)
