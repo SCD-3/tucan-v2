@@ -125,6 +125,7 @@ async function printImage(): Promise<void> {
 
     image.onload = () => {
         win.print()
+        win.close()
     }
 }
 
