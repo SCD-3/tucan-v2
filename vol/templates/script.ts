@@ -10,9 +10,9 @@ const mainImage = document.getElementById("main-image") as HTMLImageElement
 const imagePlaceholder = document.getElementById("image-placeholder") as HTMLDivElement
 
 
-const generateUrl = new URL("/generate", window.location.origin)
-const getSeedUrl = new URL("/getSeed", window.location.origin)
-const getImageUrl = new URL("/getImage", window.location.origin)
+const generateUrl      = new URL("/generate"     , window.location.origin)
+const getSeedUrl       = new URL("/getSeed"      , window.location.origin)
+const getImageUrl      = new URL("/getImage"     , window.location.origin)
 const getPrintImageUrl = new URL("/getPrintImage", window.location.origin)
 
 let currentImageUrl: string | undefined
