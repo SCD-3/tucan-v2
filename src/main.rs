@@ -2,16 +2,21 @@
 mod tiles;
 mod hexmap;
 mod drawing;
+mod network_handler;
 
 use std::error::Error;
-use std::net;
+use std::{
+    io::prelude::*,
+    net::TcpListener,
+};
 use std::process::Command;
 
 use hexx::Vec2;
 use image::{ImageBuffer, Rgba};
 use rand::prelude::*;
+use rand::random_range;
 
-use hexmap::{
+use crate::hexmap::{
     TileMap_rawShapeGen,
     TileMap_shape,
     TileMap_props,
@@ -20,13 +25,18 @@ use hexmap::{
     MapSize,
 };
 use crate::drawing::{DrawHexMap, ImageConfig};
+use crate::network_handler::*;
 
-static GUI_HTML: &[u8] = include_bytes!(r"..\vol\templates\gui.html");
-static BACKGROUND_BIG: &[u8] = std::include_bytes!(r"..\vol\assets\background_big.png");
-static BACKGROUND_SMALL: &[u8] = std::include_bytes!(r"..\vol\assets\background_small.png");
+static GUI_HTML: &str = include_str!(r"..\vol\templates\gui.html" );
+static GUI_JS: &str   = include_str!(r"..\vol\templates\script.js");
+static GUI_CSS: &str  = include_str!(r"..\vol\templates\style.css");
 
+static FAVICON: &[u8] = include_bytes!(r"..\vol\templates\favicon.ico");
 
-const GENERATION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
+static BACKGROUND_BIG: &[u8] = include_bytes!(r"..\vol\assets\background_big.png");
+static BACKGROUND_SMALL: &[u8] = include_bytes!(r"..\vol\assets\background_small.png");
+
+static OK: &str = "HTTP/1.1 200 OK";
 
 const WIDTH: u32 = 2480;
 const HEIGHT: u32 = 1748;
@@ -54,6 +64,22 @@ fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<TileMap, String> {
     TileMap::new(templates, props)
 }
 
+fn generate<R: Rng>(rng: &mut R, size: MapSize) -> TileMap {
+    loop {
+        let res = try_gen(rng, size);
+        if res.is_err() {
+            eprintln!("{}", res.err().unwrap())
+        }
+        else {
+            return res.unwrap();
+        }
+    }
+}
+
+fn parse_seed(source: &str) -> u64 {
+    u64::from_str_radix(source, 16).expect(&format!("failed to parse string {source}"))
+}
+
 fn render(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
     let mut image = image::load_from_memory(
         match_size!(map.size(), BACKGROUND_BIG, BACKGROUND_SMALL)
@@ -62,9 +88,8 @@ fn render(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8
 
     map.draw(&mut image, image_config);
 
-    return Ok(image);
+    Ok(image)
 }
-
 
 /// Renders a print image by duplicating the provided image vertically.
 /// 
@@ -81,6 +106,7 @@ fn render_print(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<R
 
     Ok(new_image)
 }
+
 
 /// Opens the default web browser with the specified URL.
 /// 
@@ -109,7 +135,127 @@ fn open_browser(url: &str) -> std::io::Result<()> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind to server");
+    let full_addr = &("http://".to_string() + &listener.local_addr().unwrap().to_string());
+    open_browser(full_addr)?;
+    println!("Starting server at {full_addr}");
 
+    let size = MapSize::Big;
+    let image_config = ImageConfig {
+        // height: HEIGHT,
+        // width: WIDTH,
+        radius: match_size!(size, HEX_RADIUS_BIG, HEX_RADIUS_SMALL),
+        hexmap_offset: HEXMAP_OFFSET,
+    };
+    let mut seed = None;
+    let mut image = None;
+
+    for stream in listener.incoming() {
+        let mut stream = stream.expect("failed to read stream");
+        let mut buffer = [0u8; 1024];
+        stream.read(&mut buffer)?;
+
+        let request = Request::parse(&buffer).expect("failed to parse request");
+
+        match (request.method, request.path.as_str()) {
+            (Method::GET, "/") => {
+                println!("getting index");
+                let response = format!("{OK}\r\nContent-Length: {}\r\nContent-Type: text/html\r\n\r\n", GUI_HTML.len());
+                stream.write_all(response.as_bytes())?;
+                stream.write_all(GUI_HTML.as_bytes())?;
+            }
+
+            (Method::GET, "/style.css") => {
+                println!("getting stylesheet");
+                let response = format!("{OK}\r\nContent-Length: {}\r\nContent-Type: text/css\r\n\r\n", GUI_CSS.len());
+                stream.write_all(response.as_bytes())?;
+                stream.write_all(GUI_CSS.as_bytes())?;
+            }
+
+            (Method::GET, "/script.js") => {
+                println!("getting script");
+                let response = format!("{OK}\r\nContent-Length: {}\r\nContent-Type: application/javascript\r\n\r\n", GUI_JS.len());
+                stream.write_all(response.as_bytes())?;
+                stream.write_all(GUI_JS.as_bytes())?;
+            }
+
+            
+            (Method::GET, "/favicon.ico") => {
+                println!("getting icon");
+                let response = format!("{OK}\r\nContent-Length: {}\r\nContent-Type: image/x-icon\r\n\r\n", FAVICON.len());
+                stream.write_all(response.as_bytes())?;
+                stream.write_all(FAVICON)?;
+            }
+
+            (Method::POST, "/generate") => {
+                println!("posting generate order");
+                let response = OK;
+                let body = request.body.trim_matches('\0');
+                
+                if !body.is_empty() {
+                    println!("non empty {body}");
+                    seed = Some(parse_seed(body));
+                }
+                else {
+                    println!("empty");
+                    seed = Some(random_range(0..u64::MAX));
+                }
+                
+                let mut rng = StdRng::seed_from_u64(seed.unwrap());
+                image = Some(generate(&mut rng, MapSize::Big));
+                stream.write_all(response.as_bytes())?;
+            }
+
+            (Method::GET, "/getSeed") => {
+                println!("getting seed");
+
+                if seed.is_some() {
+                    let seed = format!("{:X}", seed.unwrap());
+                    let response = format!("{OK}\r\nContent-Length: {}\r\nContent-Type: text/plain\r\n\r\n", seed.len());
+                    stream.write_all(response.as_bytes())?;
+                    stream.write_all(seed.as_bytes())?;
+                }
+                else {
+                    stream.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 14\r\n\r\n")?;
+                    stream.write_all(b"Seed not found")?;
+                };
+            }
+
+        (Method::GET, "/getImage") => {
+            println!("getting image");
+
+            if let Some(image) = image.clone() {
+                let image = render(image, image_config)?;
+
+                let mut png_bytes = Vec::new();
+
+                image::DynamicImage::ImageRgba8(image)
+                    .write_to(
+                        &mut std::io::Cursor::new(&mut png_bytes),
+                        image::ImageFormat::Png,
+                    )?;
+
+                let response = format!(
+                    "{OK}\r\nContent-Length: {}\r\nContent-Type: image/png\r\n\r\n",
+                    png_bytes.len()
+                );
+
+                stream.write_all(response.as_bytes())?;
+                stream.write_all(&png_bytes)?;
+            }
+            else {
+                stream.write_all(
+                    b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 15\r\n\r\nImage not found"
+                )?;
+            };
+        }
+
+            _ => {
+                eprintln!("request not found: {request:?}");
+                stream.write_all(b"HTTP/1.1 404 Not found")?;
+            }
+        };;
+    };
 
     Ok(())
 }

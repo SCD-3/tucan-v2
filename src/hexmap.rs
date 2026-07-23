@@ -676,6 +676,7 @@ impl DrawHexMap<PropOption> for TileMap_props {
 
 
 
+#[derive(Clone)]
 pub struct TileMap {
     map: HexagonalMap<Tile>,
     size: MapSize
