@@ -4,15 +4,12 @@ mod hexmap;
 mod drawing;
 
 use std::error::Error;
-use std::io::{Cursor, Read, Write};
 use std::net;
 use std::process::Command;
-use std::sync::Mutex;
-use std::time::Instant;
 
 use hexx::Vec2;
 use image::{ImageBuffer, Rgba};
-use rand::{Rng, SeedableRng, rng, rngs::StdRng};
+use rand::prelude::*;
 
 use hexmap::{
     TileMap_rawShapeGen,
