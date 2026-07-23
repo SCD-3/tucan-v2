@@ -24,9 +24,9 @@ use hexmap::{
 };
 use crate::drawing::{DrawHexMap, ImageConfig};
 
-static GUI_HTML: &[u8] = include_bytes!("frontend/gui.html");
-static BACKGROUND_BIG: &[u8] = std::include_bytes!(r"img/background_big.png");
-static BACKGROUND_SMALL: &[u8] = std::include_bytes!(r"img/background_small.png");
+static GUI_HTML: &[u8] = include_bytes!(r"..\vol\templates\gui.html");
+static BACKGROUND_BIG: &[u8] = std::include_bytes!(r"..\vol\assets\background_big.png");
+static BACKGROUND_SMALL: &[u8] = std::include_bytes!(r"..\vol\assets\background_small.png");
 
 
 const GENERATION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
