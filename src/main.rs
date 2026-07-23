@@ -38,8 +38,8 @@ static BACKGROUND_SMALL: &[u8] = include_bytes!(r"..\vol\assets\background_small
 
 static OK: &str = "HTTP/1.1 200 OK";
 
-const WIDTH: u32 = 2480;
-const HEIGHT: u32 = 1748;
+// const WIDTH: u32 = 2480;
+// const HEIGHT: u32 = 1748;
 
 const HEX_RADIUS_BIG: f32 = 70.00;
 const HEX_RADIUS_SMALL: f32 = 70.00;
@@ -139,6 +139,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let full_addr = &("http://".to_string() + &listener.local_addr().unwrap().to_string());
     open_browser(full_addr)?;
     println!("Starting server at {full_addr}");
+    println!("DO NOT SAVE PAGE IN BOOKMARKS. IT CAN AND WILL CHANGE AT NEXT LAUNCH OF THE PROGRAM\n");
 
     let size = MapSize::Big;
     let image_config = ImageConfig {
