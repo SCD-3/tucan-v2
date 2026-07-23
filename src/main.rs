@@ -100,7 +100,7 @@ fn render(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8
 /// A result containing the rendered print image as a vector of bytes, or an error message.
 fn render_print(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
     let image = render(map, image_config)?;
-    let mut new_image = ImageBuffer::new(image.width(), image.height());
+    let mut new_image = ImageBuffer::new(image.width(), image.height()*2);
     image::imageops::overlay(&mut new_image, &image, 0, 0);
     image::imageops::overlay(&mut new_image, &image, 0, image.height() as i64);
 
@@ -221,40 +221,67 @@ fn main() -> Result<(), Box<dyn Error>> {
                 };
             }
 
-        (Method::GET, "/getImage") => {
-            println!("getting image");
+            (Method::GET, "/getImage") => {
+                println!("getting image");
 
-            if let Some(image) = image.clone() {
-                let image = render(image, image_config)?;
+                if let Some(image) = image.clone() {
+                    let image = render(image, image_config)?;
+                    let mut png_bytes = Vec::new();
 
-                let mut png_bytes = Vec::new();
+                    image::DynamicImage::ImageRgba8(image)
+                        .write_to(
+                            &mut std::io::Cursor::new(&mut png_bytes),
+                            image::ImageFormat::Png,
+                        )?;
 
-                image::DynamicImage::ImageRgba8(image)
-                    .write_to(
-                        &mut std::io::Cursor::new(&mut png_bytes),
-                        image::ImageFormat::Png,
+                    let response = format!(
+                        "{OK}\r\nContent-Length: {}\r\nContent-Type: image/png\r\n\r\n",
+                        png_bytes.len()
+                    );
+
+                    stream.write_all(response.as_bytes())?;
+                    stream.write_all(&png_bytes)?;
+                }
+                else {
+                    stream.write_all(
+                        b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 15\r\n\r\nImage not found"
                     )?;
-
-                let response = format!(
-                    "{OK}\r\nContent-Length: {}\r\nContent-Type: image/png\r\n\r\n",
-                    png_bytes.len()
-                );
-
-                stream.write_all(response.as_bytes())?;
-                stream.write_all(&png_bytes)?;
+                };
             }
-            else {
-                stream.write_all(
-                    b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 15\r\n\r\nImage not found"
-                )?;
-            };
-        }
+
+            (Method::GET, "/getPrintImage") => {
+                println!("getting print image");
+
+                if let Some(image) = image.clone() {
+                    let image = render_print(image, image_config)?;
+                    let mut png_bytes = Vec::new();
+
+                    image::DynamicImage::ImageRgba8(image)
+                        .write_to(
+                            &mut std::io::Cursor::new(&mut png_bytes),
+                            image::ImageFormat::Png,
+                        )?;
+
+                    let response = format!(
+                        "{OK}\r\nContent-Length: {}\r\nContent-Type: image/png\r\n\r\n",
+                        png_bytes.len()
+                    );
+
+                    stream.write_all(response.as_bytes())?;
+                    stream.write_all(&png_bytes)?;
+                }
+                else {
+                    stream.write_all(
+                        b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 15\r\n\r\nImage not found"
+                    )?;
+                };
+            }
 
             _ => {
                 eprintln!("request not found: {request:?}");
                 stream.write_all(b"HTTP/1.1 404 Not found")?;
             }
-        };;
+        };
     };
 
     Ok(())
