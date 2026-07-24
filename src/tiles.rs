@@ -143,18 +143,6 @@ impl Prop {
     }
 
     #[must_use]
-    pub fn get_color(self) -> Rgba<u8> {
-            match self {
-                Prop::Village(_)  => Rgba([255, 0  , 255, 255]),
-                Prop::Monolith    => Rgba([50 , 50 , 50 , 255]),
-                Prop::Book        => Rgba([100, 50 , 0  , 255]),
-                Prop::Bird        => Rgba([0  , 200, 0  , 255]),
-                Prop::WeirdMonkey => Rgba([100, 0  , 100, 255]),
-                Prop::Dragon      => Rgba([50 , 255, 255, 255]),
-            }
-    }
-
-    #[must_use]
     pub fn get_image(self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         let bytes = match self {
             Prop::Village(_)  => panic!("Prop::Village does not have assiociated image"),

@@ -40,6 +40,9 @@ const FONT_SCALE: f32 = 100.0;
 const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -50.0);
 static FONT: &[u8] = include_bytes!(r"..\vol\assets\Comic Sans MS.ttf");
 
+const MAP_NAME_X: i32 = 600;
+const MAP_NAME_Y: i32 = 70;
+
 const PROP_RADIUS_MULTI: f32 = 0.60;
 const IMAGE_PROP_OFFSET_X: u32 = 40;
 const IMAGE_PROP_OFFSET_Y: u32 = 35;
@@ -54,8 +57,8 @@ const HEX_RADIUS_SMALL: f32 = 70.00;
 
 const HEXMAP_OFFSET: Vec2 = Vec2 { x: 850.0, y: 874.0 };
 
-
 impl DrawHexMap<Tile> for TileMap {
+
     type ColorSpace = Rgba<u8>;
 
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
@@ -121,13 +124,17 @@ fn parse_seed(source: &str) -> u64 {
     u64::from_str_radix(source, 16).expect(&format!("failed to parse string {source}"))
 }
 
-fn render(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
+fn render(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
     let mut image = image::load_from_memory(
         match_size!(map.size(), BACKGROUND_BIG, BACKGROUND_SMALL)
         )?
         .into_rgba8();
 
     map.draw(&mut image, image_config);
+    let font = FontArc::try_from_slice(FONT).expect("invalid font");
+    let mut name = format!("{map_seed:X}");
+    name = format!("{name:0>16}");
+    draw_text_mut(&mut image, rgba!(0, 0, 0), MAP_NAME_X, MAP_NAME_Y, FONT_SCALE, &font, &name);
 
     Ok(image)
 }
@@ -139,8 +146,8 @@ fn render(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8
 /// 
 /// # Returns
 /// A result containing the rendered print image as a vector of bytes, or an error message.
-fn render_print(map: TileMap, image_config: ImageConfig) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
-    let image = render(map, image_config)?;
+fn render_print(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
+    let image = render(map, image_config, map_seed)?;
     let mut new_image = ImageBuffer::new(image.width(), image.height()*2);
     image::imageops::overlay(&mut new_image, &image, 0, 0);
     image::imageops::overlay(&mut new_image, &image, 0, image.height() as i64);
@@ -267,7 +274,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("getting image");
 
                 if let Some(image) = image.clone() {
-                    let image = render(image, image_config)?;
+                    let image = render(image, image_config, seed.expect("attempted to draw for non existen seed"))?;
                     let mut png_bytes = Vec::new();
 
                     image::DynamicImage::ImageRgba8(image)
@@ -295,7 +302,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("getting print image");
 
                 if let Some(image) = image.clone() {
-                    let image = render_print(image, image_config)?;
+                    let image = render_print(image, image_config, seed.expect("attempted to draw for non existen seed"))?;
                     let mut png_bytes = Vec::new();
 
                     image::DynamicImage::ImageRgba8(image)
