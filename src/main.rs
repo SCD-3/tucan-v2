@@ -192,6 +192,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("posting generate order");
                 let response = OK;
                 let body = request.body.trim_matches('\0');
+                stream.write_all(response.as_bytes())?;
                 
                 if !body.is_empty() {
                     println!("seed given, using {body}");
@@ -204,7 +205,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 
                 let mut rng = StdRng::seed_from_u64(seed.unwrap());
                 image = Some(generate(&mut rng, MapSize::Big));
-                stream.write_all(response.as_bytes())?;
             }
 
             (Method::GET, "/getSeed") => {
