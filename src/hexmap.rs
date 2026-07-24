@@ -772,6 +772,7 @@ impl DrawHexMap<Tile> for TileMap {
             if let PropOption::Some(prop) = prop_option {
                 if matches!(prop, Prop::Village(_)) {
                     // draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, PxScale::from(TEXT_SCALE), FONT);
+                    draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, rgba!(210, 105, 30));
                 }
                 else {
                     let prop_image = prop.get_image();
