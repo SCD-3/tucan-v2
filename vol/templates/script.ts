@@ -25,7 +25,7 @@ async function getSeed(): Promise<string> {
         throw new Error(`Failed to get seed: ${response.status}`)
     }
 
-    return await response.text().then((t) => t.padStart(16, "0"))
+    return await response.text()
 }
 
 async function getImage(): Promise<string> {

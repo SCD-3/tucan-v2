@@ -124,6 +124,11 @@ fn parse_seed(source: &str) -> u64 {
     u64::from_str_radix(source, 16).expect(&format!("failed to parse string {source}"))
 }
 
+fn format_seed(seed: u64) -> String {
+    let name = format!("{seed:X}");
+    format!("{name:0>16}")
+}
+
 fn render(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
     let mut image = image::load_from_memory(
         match_size!(map.size(), BACKGROUND_BIG, BACKGROUND_SMALL)
@@ -132,8 +137,7 @@ fn render(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<Imag
 
     map.draw(&mut image, image_config);
     let font = FontArc::try_from_slice(FONT).expect("invalid font");
-    let mut name = format!("{map_seed:X}");
-    name = format!("{name:0>16}");
+    let name = format_seed(map_seed);
     draw_text_mut(&mut image, rgba!(0, 0, 0), MAP_NAME_X, MAP_NAME_Y, FONT_SCALE, &font, &name);
 
     Ok(image)
@@ -259,7 +263,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("getting seed");
 
                 if seed.is_some() {
-                    let seed = format!("{:X}", seed.unwrap());
+                    let seed = format_seed(seed.unwrap());
                     let response = format!("{OK}\r\nContent-Length: {}\r\nContent-Type: text/plain\r\n\r\n", seed.len());
                     stream.write_all(response.as_bytes())?;
                     stream.write_all(seed.as_bytes())?;
