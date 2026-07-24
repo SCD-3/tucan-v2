@@ -1,14 +1,9 @@
 use std::ops::{Index, IndexMut};
-use hexx::{Hex, storage::{HexStore, HexagonalMap}, Vec2};
-use image::{Pixel, Rgba};
-use ab_glyph::FontArc;
-use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut, draw_text_mut};
+use hexx::{Hex, storage::{HexStore, HexagonalMap}};
 use rand::prelude::*;
-use crate::{drawing::*, tiles::*};
+use crate::tiles::*;
 
 type Result<T> = core::result::Result<T, String>;
-
-const PROP_RADIUS_MULTI: f32 = 0.60;
 
 const BIG_MAP_SIZE:   u8 = 104;
 const SMALL_MAP_SIZE: u8 =  73;
@@ -27,13 +22,6 @@ const ARTIFACT_COUNT_BIG:           usize = 15;
 const ARTIFACT_COUNT_SMALL:         usize = 10; // 10
 const ARTIFACT_COUNT_PER_ART_BIG:   usize =  3;
 const ARTIFACT_COUNT_PER_ART_SMALL: usize =  2;
-
-const IMAGE_PROP_OFFSET_X: u32 = 40;
-const IMAGE_PROP_OFFSET_Y: u32 = 35;
-
-const FONT_SCALE: f32 = 100.0;
-const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -50.0);
-static FONT: &[u8] = include_bytes!(r"..\vol\assets\Comic Sans MS.ttf");
 
 /// Matching for pattern `Option<T>::Some(a)|Option<T>::None`.
 /// 
@@ -306,18 +294,6 @@ impl HexStore<bool> for TileMap_shape {
 
 }
 
-impl DrawHexMap<bool> for TileMap_shape {
-    type ColorSpace = Rgba<u8>;
-
-    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &bool, image_config: ImageConfig) {
-        let pos = get_pos(hex, image_config);
-        let points = get_hex_points(pos, image_config.radius);
-        if *value {
-            draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0)} else {rgba!(255, 255, 255)})
-        }
-    }
-}
-
 
 #[allow(non_camel_case_types)]
 #[derive(Clone)]
@@ -478,16 +454,6 @@ impl HexStore<Option<TileTemplate>> for TileMap_templates {
         self.map.values_mut()
     }
     
-}
-
-impl DrawHexMap<Option<TileTemplate>> for TileMap_templates {
-    type ColorSpace = Rgba<u8>;
-
-    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Option<TileTemplate>, image_config: ImageConfig) {
-        let pos = get_pos(hex, image_config);
-        let points = get_hex_points(pos, image_config.radius);
-        if let Some(template) = value { draw_polygon_mut(img, &points, if hex == Hex::ZERO {rgba!(255, 0, 0)} else {template.color()}) }
-    }
 }
 
 
@@ -664,19 +630,6 @@ impl HexStore<PropOption> for TileMap_props {
     
 }
 
-impl DrawHexMap<PropOption> for TileMap_props {
-    type ColorSpace = Rgba<u8>;
-
-    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &PropOption, image_config: ImageConfig) {
-        let pos = get_pos(hex, image_config);
-        if let PropOption::Some(prop) = *value {
-            let prop_color = prop.get_color();
-            draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, prop_color);
-        }
-    }
-}
-
-
 
 #[derive(Clone)]
 pub struct TileMap {
@@ -760,37 +713,4 @@ impl HexStore<Tile> for TileMap {
         self.map.values_mut()
     }
     
-}
-
-impl DrawHexMap<Tile> for TileMap {
-    type ColorSpace = Rgba<u8>;
-
-    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
-        let pos = get_pos(hex, image_config);
-        if let Tile { template: Some(template), prop: prop_option } = *value {
-            let points = get_hex_points(pos, image_config.radius);
-            draw_polygon_mut(img, &points, template.color());
-
-            if let PropOption::Some(prop) = prop_option {
-                if let Prop::Village(n) = prop {
-                    draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, rgba!(210, 105, 30));
-                    
-                    let font = FontArc::try_from_slice(FONT).expect("invalid font");
-                    let pos = pos + FONT_OFFSET;
-                    draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, FONT_SCALE, &font, &n.to_string());
-                }
-                else {
-                    let prop_image = prop.get_image();
-                    for (x, y, pixel) in prop_image.enumerate_pixels() {
-                        if pixel.alpha() > 0 {
-                            img.draw_pixel(
-                                pos.x as u32 + x - IMAGE_PROP_OFFSET_X, 
-                                pos.y as u32 + y - IMAGE_PROP_OFFSET_Y, 
-                                *pixel);
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

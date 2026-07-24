@@ -5,16 +5,15 @@ mod drawing;
 mod network_handler;
 
 use std::error::Error;
-use std::{
-    io::prelude::*,
-    net::TcpListener,
-};
+use std::{io::prelude::*, net::TcpListener};
 use std::process::Command;
 
-use hexx::Vec2;
-use image::{ImageBuffer, Rgba};
+use hexx::{Vec2, Hex};
+use image::{ImageBuffer, Rgba, Pixel};
 use rand::prelude::*;
 use rand::random_range;
+use ab_glyph::FontArc;
+use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut, draw_text_mut};
 
 use crate::hexmap::{
     TileMap_rawShapeGen,
@@ -24,8 +23,9 @@ use crate::hexmap::{
     TileMap,
     MapSize,
 };
-use crate::drawing::{DrawHexMap, ImageConfig};
+use crate::drawing::*;
 use crate::network_handler::*;
+use crate::tiles::*;
 
 static GUI_HTML: &str = include_str!(r"..\vol\templates\gui.html" );
 static GUI_JS: &str   = include_str!(r"..\vol\templates\script.js");
@@ -35,6 +35,14 @@ static FAVICON: &[u8] = include_bytes!(r"..\vol\templates\favicon.ico");
 
 static BACKGROUND_BIG: &[u8] = include_bytes!(r"..\vol\assets\background_big.png");
 static BACKGROUND_SMALL: &[u8] = include_bytes!(r"..\vol\assets\background_small.png");
+
+const FONT_SCALE: f32 = 100.0;
+const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -50.0);
+static FONT: &[u8] = include_bytes!(r"..\vol\assets\Comic Sans MS.ttf");
+
+const PROP_RADIUS_MULTI: f32 = 0.60;
+const IMAGE_PROP_OFFSET_X: u32 = 40;
+const IMAGE_PROP_OFFSET_Y: u32 = 35;
 
 static OK: &str = "HTTP/1.1 200 OK";
 
@@ -46,6 +54,39 @@ const HEX_RADIUS_SMALL: f32 = 70.00;
 
 const HEXMAP_OFFSET: Vec2 = Vec2 { x: 850.0, y: 874.0 };
 
+
+impl DrawHexMap<Tile> for TileMap {
+    type ColorSpace = Rgba<u8>;
+
+    fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
+        let pos = get_pos(hex, image_config);
+        if let Tile { template: Some(template), prop: prop_option } = *value {
+            let points = get_hex_points(pos, image_config.radius);
+            draw_polygon_mut(img, &points, template.color());
+
+            if let PropOption::Some(prop) = prop_option {
+                if let Prop::Village(n) = prop {
+                    draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, rgba!(210, 105, 30));
+                    
+                    let font = FontArc::try_from_slice(FONT).expect("invalid font");
+                    let pos = pos + FONT_OFFSET;
+                    draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, FONT_SCALE, &font, &n.to_string());
+                }
+                else {
+                    let prop_image = prop.get_image();
+                    for (x, y, pixel) in prop_image.enumerate_pixels() {
+                        if pixel.alpha() > 0 {
+                            img.draw_pixel(
+                                pos.x as u32 + x - IMAGE_PROP_OFFSET_X, 
+                                pos.y as u32 + y - IMAGE_PROP_OFFSET_Y, 
+                                *pixel);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 /// Attempts to generate a tile map shape, templates, and props using the provided random number generator and map size.
 /// 
