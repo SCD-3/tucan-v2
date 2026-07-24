@@ -72,6 +72,7 @@ macro_rules! match_size {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(u8)]
+#[allow(dead_code)]
 pub enum MapSize {
     Small = SMALL_MAP_SIZE,
     Big   = BIG_MAP_SIZE
