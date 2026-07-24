@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut};
-use hexx::{Hex, storage::{HexStore, HexagonalMap}};
+use hexx::{Hex, storage::{HexStore, HexagonalMap}, Vec2};
 use image::{Pixel, Rgba};
-use ab_glyph::{FontArc, PxScale};
+use ab_glyph::FontArc;
 use imageproc::drawing::{Canvas, draw_polygon_mut, draw_filled_circle_mut, draw_text_mut};
 use rand::prelude::*;
 use crate::{drawing::*, tiles::*};
@@ -31,8 +31,9 @@ const ARTIFACT_COUNT_PER_ART_SMALL: usize =  2;
 const IMAGE_PROP_OFFSET_X: u32 = 40;
 const IMAGE_PROP_OFFSET_Y: u32 = 35;
 
-const TEXT_SCALE: f32 = 10.0;
-// const FONT: ??? //TODO
+const FONT_SCALE: f32 = 100.0;
+const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -50.0);
+static FONT: &[u8] = include_bytes!(r"..\vol\assets\Comic Sans MS.ttf");
 
 /// Matching for pattern `Option<T>::Some(a)|Option<T>::None`.
 /// 
@@ -770,9 +771,12 @@ impl DrawHexMap<Tile> for TileMap {
             draw_polygon_mut(img, &points, template.color());
 
             if let PropOption::Some(prop) = prop_option {
-                if matches!(prop, Prop::Village(_)) {
-                    // draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, PxScale::from(TEXT_SCALE), FONT);
+                if let Prop::Village(n) = prop {
                     draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, rgba!(210, 105, 30));
+                    
+                    let font = FontArc::try_from_slice(FONT).expect("invalid font");
+                    let pos = pos + FONT_OFFSET;
+                    draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, FONT_SCALE, &font, &n.to_string());
                 }
                 else {
                     let prop_image = prop.get_image();
