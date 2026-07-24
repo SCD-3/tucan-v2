@@ -138,7 +138,7 @@ function showImage(): void {
     imagePlaceholder.style.display = "none"
 }
 
-async function renderImage(): Promise<void> {
+async function renderNewImage(): Promise<void> {
     hideImage()
     await generateImage()
 
@@ -162,7 +162,7 @@ async function downloadImage() {
     a.click()
 }
 
-generateBtn.addEventListener("click", renderImage)
+generateBtn.addEventListener("click", renderNewImage)
 printBtn.addEventListener("click", printImage)
 downloadBtn.addEventListener("click", downloadImage)
 
@@ -170,7 +170,7 @@ seedInput.addEventListener("input", () => {
     seedInput.value = seedInput.value.replace(/[^A-Fa-f0-9]/g, "")
 })
 
-renderImage().catch(console.error)
+renderNewImage().catch(console.error)
 
 if (Math.random() < 0.001) {
     // easter egg
