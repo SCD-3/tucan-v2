@@ -148,7 +148,7 @@ async function renderNewImage(): Promise<void> {
 
     currentImageUrl = image
     mainImage.src = currentImageUrl
-    seedDisplay.textContent = seed
+    seedDisplay.textContent = seed.padStart(16, "0")
     showImage()
 }
 
