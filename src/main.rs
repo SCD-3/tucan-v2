@@ -194,11 +194,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let body = request.body.trim_matches('\0');
                 
                 if !body.is_empty() {
-                    println!("non empty {body}");
+                    println!("seed given, using {body}");
                     seed = Some(parse_seed(body));
                 }
                 else {
-                    println!("empty");
+                    println!("no seed given, using random");
                     seed = Some(random_range(0..u64::MAX));
                 }
                 

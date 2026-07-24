@@ -80,7 +80,7 @@ async function printImage(): Promise<void> {
     const win = window.open("", "_blank")
 
     if (win === null) {
-        return
+        throw new Error(`Failed to open new tab for printing purposes`)
     }
 
     const image = win.document.createElement("img")
