@@ -25,7 +25,7 @@ async function getSeed(): Promise<string> {
         throw new Error(`Failed to get seed: ${response.status}`)
     }
 
-    return await response.text()
+    return await response.text().then((t) => t.padStart(16, "0"))
 }
 
 async function getImage(): Promise<string> {
@@ -148,7 +148,7 @@ async function renderNewImage(): Promise<void> {
 
     currentImageUrl = image
     mainImage.src = currentImageUrl
-    seedDisplay.textContent = seed.padStart(16, "0")
+    seedDisplay.textContent = seed
     showImage()
 }
 
