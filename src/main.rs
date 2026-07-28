@@ -9,7 +9,7 @@ use std::{io::prelude::*, net::TcpListener};
 use std::process::Command;
 
 use hexx::{Vec2, Hex};
-use image::{ImageBuffer, Rgba, Pixel};
+use image::{DynamicImage, ImageBuffer, Pixel, Rgba};
 use rand::prelude::*;
 use rand::random_range;
 use ab_glyph::FontArc;
@@ -36,9 +36,11 @@ static FAVICON: &[u8] = include_bytes!(r"..\vol\templates\favicon.ico");
 static BACKGROUND_BIG: &[u8] = include_bytes!(r"..\vol\assets\background_big.png");
 static BACKGROUND_SMALL: &[u8] = include_bytes!(r"..\vol\assets\background_small.png");
 
-const FONT_SCALE: f32 = 100.0;
-const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -50.0);
-static FONT: &[u8] = include_bytes!(r"..\vol\assets\Comic Sans MS.ttf");
+const SEED_FONT_SCALE: f32 = 100.0;
+const FONT_SCALE: f32 = 50.0;
+const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -5.0);
+const FONT_TEN_OFFSET: Vec2 = Vec2::new(-10.0, 0.0);
+static FONT: &[u8] = include_bytes!(r"..\vol\assets\font.ttf");
 
 const MAP_NAME_X: i32 = 600;
 const MAP_NAME_Y: i32 = 70;
@@ -47,10 +49,13 @@ const PROP_RADIUS_MULTI: f32 = 0.60;
 const IMAGE_PROP_OFFSET_X: u32 = 40;
 const IMAGE_PROP_OFFSET_Y: u32 = 35;
 
+const HEXAGONAL_FRAME_SCALE: f32 = 0.98;
+
 static OK: &str = "HTTP/1.1 200 OK";
 
 // const WIDTH: u32 = 2480;
 // const HEIGHT: u32 = 1748;
+const PRINT_MARGIN: f64 = 0.60;
 
 const HEX_RADIUS_BIG: f32 = 70.00;
 const HEX_RADIUS_SMALL: f32 = 70.00;
@@ -64,15 +69,20 @@ impl DrawHexMap<Tile> for TileMap {
     fn draw_element<C: Canvas<Pixel = Self::ColorSpace>>(&self, img: &mut C, hex: Hex, value: &Tile, image_config: ImageConfig) {
         let pos = get_pos(hex, image_config);
         if let Tile { template: Some(template), prop: prop_option } = *value {
-            let points = get_hex_points(pos, image_config.radius);
+            let points = get_hex_points(pos, image_config.radius); // frame
+            draw_polygon_mut(img, &points, rgba!(0, 0, 0));
+            let points = get_hex_points(pos, image_config.radius * HEXAGONAL_FRAME_SCALE); // tile
             draw_polygon_mut(img, &points, template.color());
 
             if let PropOption::Some(prop) = prop_option {
                 if let Prop::Village(n) = prop {
-                    draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, rgba!(210, 105, 30));
+                    draw_filled_circle_mut(img, (pos.x as i32, pos.y as i32), (image_config.radius * PROP_RADIUS_MULTI) as i32, rgba!(245, 166, 74));
                     
                     let font = FontArc::try_from_slice(FONT).expect("invalid font");
-                    let pos = pos + FONT_OFFSET;
+                    let mut pos = pos + FONT_OFFSET;
+                    if n == 10 {
+                        pos += FONT_TEN_OFFSET;
+                    }
                     draw_text_mut(img, rgba!(0, 0, 0), pos.x as i32, pos.y as i32, FONT_SCALE, &font, &n.to_string());
                 }
                 else {
@@ -138,7 +148,7 @@ fn render(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<Imag
     map.draw(&mut image, image_config);
     let font = FontArc::try_from_slice(FONT).expect("invalid font");
     let name = format_seed(map_seed);
-    draw_text_mut(&mut image, rgba!(0, 0, 0), MAP_NAME_X, MAP_NAME_Y, FONT_SCALE, &font, &name);
+    draw_text_mut(&mut image, rgba!(0, 0, 0), MAP_NAME_X, MAP_NAME_Y, SEED_FONT_SCALE, &font, &name); // draw seed
 
     Ok(image)
 }
@@ -150,13 +160,23 @@ fn render(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<Imag
 /// 
 /// # Returns
 /// A result containing the rendered print image as a vector of bytes, or an error message.
-fn render_print(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn Error>> {
+fn render_print(map: TileMap, image_config: ImageConfig, map_seed: u64) -> Result<DynamicImage, Box<dyn Error>> {
     let image = render(map, image_config, map_seed)?;
     let mut new_image = ImageBuffer::new(image.width(), image.height()*2);
     image::imageops::overlay(&mut new_image, &image, 0, 0);
     image::imageops::overlay(&mut new_image, &image, 0, image.height() as i64);
 
-    Ok(new_image)
+    let nwidth = image.width() as f64 * PRINT_MARGIN;
+    let nheight = image.height() as f64 * PRINT_MARGIN;
+
+    println!("X {} -> {}", image.width(), nwidth);
+    println!("Y {} -> {}", image.height(), nheight);
+
+    let output_image = DynamicImage::from(new_image).resize(
+        nwidth as u32, 
+        nheight as u32, 
+        image::imageops::FilterType::Lanczos3);
+    Ok(output_image)
 }
 
 
@@ -206,7 +226,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for stream in listener.incoming() {
         let mut stream = stream.expect("failed to read stream");
         let mut buffer = [0u8; 1024];
-        stream.read(&mut buffer)?;
+        let _ = stream.read(&mut buffer)?;
 
         let request = Request::parse(&buffer).expect("failed to parse request");
 
@@ -309,7 +329,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let image = render_print(image, image_config, seed.expect("attempted to draw for non existen seed"))?;
                     let mut png_bytes = Vec::new();
 
-                    image::DynamicImage::ImageRgba8(image)
+                    image
                         .write_to(
                             &mut std::io::Cursor::new(&mut png_bytes),
                             image::ImageFormat::Png,

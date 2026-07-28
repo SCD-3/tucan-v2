@@ -14,7 +14,7 @@ const HEXMAP_RADIUS_SMALL: u32 = 5;
 const MIN_HEX_NEIGHBORS: u8 = 2;
 
 const VILLAGE_COUNT: u8 = 10;
-const VILLAGE_OFFSET: u8 = 3;
+const VILLAGE_OFFSET: u8 = 2;
 
 const MIN_PROP_DISTANCE: u32 = 2;
 
@@ -506,7 +506,7 @@ impl TileMap_props {
         assert_eq!(village_pos.len(), VILLAGE_COUNT as usize, "invalid number of villages. Expected {VILLAGE_COUNT}, got {}.", village_pos.len());
 
         for (id, hex) in village_pos.iter().enumerate() {
-            self[*hex].give_prop(Prop::Village((id as u8 + 1 + VILLAGE_OFFSET) % VILLAGE_COUNT), true);
+            self[*hex].give_prop(Prop::Village((id as u8 + VILLAGE_OFFSET) % VILLAGE_COUNT + 1), true);
         };
         Ok(())
     }

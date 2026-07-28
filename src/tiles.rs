@@ -161,7 +161,7 @@ impl Prop {
 
 pub const TEMPLATES: [TileTemplate; 4] = [SAND, FOREST, MOUNTAIN, WATER];
 
-pub const SAND:     TileTemplate = TileTemplate { name: "SAND"    , color: Rgba([203, 189, 147, 255]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
-pub const FOREST:   TileTemplate = TileTemplate { name: "FOREST"  , color: Rgba([46 , 111, 64 , 255]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
-pub const MOUNTAIN: TileTemplate = TileTemplate { name: "MOUNTAIN", color: Rgba([140, 140, 140, 255]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
-pub const WATER:    TileTemplate = TileTemplate { name: "WATER"   , color: Rgba([46 , 108, 216, 255]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };
+pub const SAND:     TileTemplate = TileTemplate { name: "SAND"    , color: Rgba([222, 208, 155, 255]), amount_small: 24, amount_big: 34, primary_art: Prop::Monolith   , secondary_art: None             };
+pub const FOREST:   TileTemplate = TileTemplate { name: "FOREST"  , color: Rgba([145, 196, 83 , 255]), amount_small: 20, amount_big: 29, primary_art: Prop::Bird       , secondary_art: Some(Prop::Book) };
+pub const MOUNTAIN: TileTemplate = TileTemplate { name: "MOUNTAIN", color: Rgba([183, 165, 127, 255]), amount_small: 16, amount_big: 24, primary_art: Prop::WeirdMonkey, secondary_art: None             };
+pub const WATER:    TileTemplate = TileTemplate { name: "WATER"   , color: Rgba([157, 181, 169, 255]), amount_small: 13, amount_big: 17, primary_art: Prop::Dragon     , secondary_art: None             };
