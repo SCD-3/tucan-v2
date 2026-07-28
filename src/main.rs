@@ -27,20 +27,20 @@ use crate::drawing::*;
 use crate::network_handler::*;
 use crate::tiles::*;
 
-static GUI_HTML: &str = include_str!(r"..\vol\templates\gui.html" );
-static GUI_JS: &str   = include_str!(r"..\vol\templates\script.js");
-static GUI_CSS: &str  = include_str!(r"..\vol\templates\style.css");
+static GUI_HTML: &str = include_str!(r"../vol/templates/gui.html" );
+static GUI_JS: &str   = include_str!(r"../vol/templates/script.js");
+static GUI_CSS: &str  = include_str!(r"../vol/templates/style.css");
 
-static FAVICON: &[u8] = include_bytes!(r"..\vol\templates\favicon.ico");
+static FAVICON: &[u8] = include_bytes!(r"../vol/templates/favicon.ico");
 
-static BACKGROUND_BIG: &[u8] = include_bytes!(r"..\vol\assets\background_big.png");
-static BACKGROUND_SMALL: &[u8] = include_bytes!(r"..\vol\assets\background_small.png");
+static BACKGROUND_BIG: &[u8] = include_bytes!(r"../vol/assets/background_big.png");
+static BACKGROUND_SMALL: &[u8] = include_bytes!(r"../vol/assets/background_small.png");
 
 const SEED_FONT_SCALE: f32 = 100.0;
 const FONT_SCALE: f32 = 50.0;
 const FONT_OFFSET: Vec2 = Vec2::new(-5.0, -5.0);
 const FONT_TEN_OFFSET: Vec2 = Vec2::new(-10.0, 0.0);
-static FONT: &[u8] = include_bytes!(r"..\vol\assets\font.ttf");
+static FONT: &[u8] = include_bytes!(r"../vol/assets/font.ttf");
 
 const MAP_NAME_X: i32 = 600;
 const MAP_NAME_Y: i32 = 70;

@@ -1,11 +1,11 @@
 use std::fmt::Display;
 use image::{ImageBuffer, Rgba};
 
-static MONOLITH_IMAGE:     &[u8] = include_bytes!(r"..\vol\assets\artifacts\Obelisk.png");
-static BOOK_IMAGE:         &[u8] = include_bytes!(r"..\vol\assets\artifacts\Book.png");
-static BIRD_IMAGE:         &[u8] = include_bytes!(r"..\vol\assets\artifacts\Bird.png");
-static WEIRD_MONKEY_IMAGE: &[u8] = include_bytes!(r"..\vol\assets\artifacts\WeirdMonkey.png");
-static DRAGON_IMAGE:       &[u8] = include_bytes!(r"..\vol\assets\artifacts\Dragon.png");
+static MONOLITH_IMAGE:     &[u8] = include_bytes!(r"../vol/assets/artifacts/Obelisk.png");
+static BOOK_IMAGE:         &[u8] = include_bytes!(r"../vol/assets/artifacts/Book.png");
+static BIRD_IMAGE:         &[u8] = include_bytes!(r"../vol/assets/artifacts/Bird.png");
+static WEIRD_MONKEY_IMAGE: &[u8] = include_bytes!(r"../vol/assets/artifacts/WeirdMonkey.png");
+static DRAGON_IMAGE:       &[u8] = include_bytes!(r"../vol/assets/artifacts/Dragon.png");
 
 const IMAGE_PROP_SIZE: u32 = 80;
 
