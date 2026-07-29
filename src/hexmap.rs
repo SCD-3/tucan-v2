@@ -221,23 +221,28 @@ impl TileMap_shape {
     #[must_use]
     pub fn find_edges(&self) -> Vec<Hex> {
         let mut pos = self.find_edge_single();
+        println!("found single edge: {pos:?} - {}", self[pos]);
         let mut edge = vec![pos];
         let mut last_state = self.get(pos);
         
         loop {
-            for i in pos.all_neighbors() {
+            println!("find_edges loop start");
+            for i in pos.all_neighbors() { // walk alongside the edges
+                println!("last_state: {}, i state: {}", last_state.unwrap_or(&false), self.get(i).unwrap_or(&false));
                 match (last_state, self.get(i)) {
-                    (empty!(false), Some(true)) => {last_state = self.get(i); pos = i; edge.push(pos); break;}
+                    (empty!(false), Some(true)) => {last_state = self.get(i); pos = i; edge.push(pos); println!("find_edges loop break (in match)"); break;}
                     (empty!(false), empty!(false)) => continue,
                     (Some(true), Some(true)) => continue,
                     (Some(true), empty!(false)) => last_state = self.get(i)
                 }
             }
             // println!("Added {:?} First element is {:?} Are they equal? {}", edge.last(), edge.first(), edge.last() == edge.first());
-            if edge.last() == edge.first() {
-                edge.pop();
+            if edge[..edge.len() - 1].contains(edge.last().expect("called expect on edge.last()")) {
+                println!("{:?}", edge.pop());
+                println!("find_edges loop break");
                 break edge
             }
+            println!("find_edges loop end");
         }
     }
     
@@ -473,10 +478,16 @@ impl TileMap_props {
                 |_| PropOption::NotAllowed), 
             size: from.size
         };
+        println!("prop map init complete");
+
         output.place_villages(from)?;
+        println!("placed villages (no validation)");
         if output.has_invalid_villages() {
             Err("found villages placed too close to each others")?;
         }
+        println!("placed villages (validation)");
+
+        println!("placed prop places");
         output.place_prop_places(from)?;
         // let clone = output.clone();
         // let spots = clone.iter().filter_map(|a| if let (h, PropOption::CanHave) = a {Some(h)} else {None});
@@ -489,22 +500,30 @@ impl TileMap_props {
         .for_each(|(_, prop)| 
             if let PropOption::CanHave = *prop 
                 {prop.give_prop(props.next().expect("ran out of random props"), false);});
+        println!("placed props");
 
         Ok(output)
     }
 
     fn place_villages(&mut self, shape: &TileMap_shape) -> Result<()> {
+        println!("called place_villages");
+
         let edge = shape.find_edges();
+        println!("found edges");
         let edge_len = edge.len();
         let distance = edge_len as f64 / VILLAGE_COUNT as f64;
         let mut i = 0f64;
         let mut village_pos: Vec<Hex> = Vec::new();
+
+        println!("reached first for loop in place_villages");
         for _ in 0..VILLAGE_COUNT {
             village_pos.push(*edge.get(i.round() as usize).ok_or(format!("out of edge. Index {i}. Edge_len {edge_len}"))?);
             i += distance;
         }
         assert_eq!(village_pos.len(), VILLAGE_COUNT as usize, "invalid number of villages. Expected {VILLAGE_COUNT}, got {}.", village_pos.len());
+        println!("prepared village pos: {}", village_pos.len());
 
+        println!("reached second for loop in place_villages");
         for (id, hex) in village_pos.iter().enumerate() {
             self[*hex].give_prop(Prop::Village((id as u8 + VILLAGE_OFFSET) % VILLAGE_COUNT + 1), true);
         };

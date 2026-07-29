@@ -110,12 +110,19 @@ impl DrawHexMap<Tile> for TileMap {
 /// # Returns
 /// A result containing the generated shape, templates, and props, or an error message.
 fn try_gen<R: Rng>(rng: &mut R, size: MapSize) -> Result<TileMap, String> {
+    println!("called_try gen");
     let raw = TileMap_rawShapeGen::new(size, rng)?;
+    println!("raw success");
     let shape = TileMap_shape::new(raw)?;
+    println!("shape success");
 
     let props = TileMap_props::new(rng, &shape)?;
+    println!("props success");
     let templates = TileMap_templates::new(rng, &shape, &props)?;
-    TileMap::new(templates, props)
+    println!("templates success");
+    let out = TileMap::new(templates, props);
+    println!("map success");
+    out
 }
 
 fn generate<R: Rng>(rng: &mut R, size: MapSize) -> TileMap {
@@ -267,12 +274,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 stream.write_all(response.as_bytes())?;
                 
                 if !body.is_empty() {
-                    println!("seed given, using {body}");
                     seed = Some(parse_seed(body));
+                    println!("seed given, using {}", seed.unwrap());
                 }
                 else {
-                    println!("no seed given, using random");
                     seed = Some(random_range(0..u64::MAX));
+                    println!("no seed given, using random ({})", seed.unwrap());
                 }
                 
                 let mut rng = StdRng::seed_from_u64(seed.unwrap());
